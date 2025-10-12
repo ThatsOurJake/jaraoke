@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { INFO_FILE_NAME } from '../constants';
+import { INFO_FILE_NAME, VERSIONS } from '../constants';
 import { createLogger } from './logger';
 
 export interface JaraokeTrack {
@@ -18,12 +18,19 @@ export interface JaraokeFile {
   metadata: JaraokeFileMeta;
   tracks: JaraokeTrack[];
   lyrics: string;
+  version: number;
+}
+
+export interface JaraokeCDGFile {
+  metadata: JaraokeFileMeta;
+  video: string;
+  version: number;
 }
 
 const logger = createLogger('jaraoke-info-file');
 
 export const createJaraokeInfoFile = (
-  details: JaraokeFile,
+  details: Omit<JaraokeFile, 'version'> | Omit<JaraokeCDGFile, 'version'>,
   directory: string,
 ) => {
   if (!fs.existsSync(directory)) {
@@ -32,8 +39,13 @@ export const createJaraokeInfoFile = (
     );
   }
 
+  const data: JaraokeFile | JaraokeCDGFile = {
+    ...details,
+    version: VERSIONS.jaraokeInfo,
+  };
+
   const output = path.join(directory, INFO_FILE_NAME);
-  fs.writeFileSync(output, JSON.stringify(details));
+  fs.writeFileSync(output, JSON.stringify(data));
 
   logger.debug(`Created JaraokeInfo File @ "${output}"`);
 

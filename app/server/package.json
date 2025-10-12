@@ -14,10 +14,11 @@
     "@koa/router": "^14.0.0",
     "appdata-path": "^1.0.0",
     "ini": "^5.0.0",
+    "jaraoke-shared": "workspace:*",
     "koa": "^3.0.1",
+    "music-metadata": "^11.9.0",
     "pino": "^10.0.0",
-    "pino-pretty": "^13.1.1",
-    "jaraoke-shared": "workspace:*"
+    "pino-pretty": "^13.1.1"
   },
   "devDependencies": {
     "@types/ini": "^4.1.1",

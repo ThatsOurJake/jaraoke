@@ -109,3 +109,29 @@ export interface UltrastarFile {
   creator?: string;
   duration?: number;
 }
+
+export interface LyricBuilderAssOptions {
+  highlightColour?: string;
+  fontSize?: number;
+  font?: string;
+  paddingTiming?: number;
+  screen?: {
+    width: number;
+    height: number;
+  };
+  maxLinesOnScreen?: number;
+}
+
+export interface AssLine {
+  start: number;
+  end: number;
+  lyric: string;
+  style?: string;
+}
+
+export interface Settings {
+  ffmpegPath: string;
+  projectMHeadlessPath: string;
+  visualsDirectory: string;
+  version: number;
+}

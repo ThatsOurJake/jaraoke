@@ -1,4 +1,8 @@
-import type { WithRequired } from 'jaraoke-shared/types';
+import type {
+  AssLine,
+  LyricBuilderAssOptions,
+  WithRequired,
+} from 'jaraoke-shared/types';
 import {
   kfnSongIniReader,
   type SongIniReaderInstance,
@@ -9,18 +13,6 @@ interface LyricBuilderOptions {
   songIniInstance?: SongIniReaderInstance;
 }
 
-interface LyricBuilderAssOptions {
-  highlightColour?: string;
-  fontSize?: number;
-  font?: string;
-  paddingTiming?: number;
-  screen?: {
-    width: number;
-    height: number;
-  };
-  maxLinesOnScreen?: number;
-}
-
 interface Line {
   str: string;
   group: string;
@@ -28,13 +20,6 @@ interface Line {
 
 interface LineTiming extends Line {
   timing: number;
-}
-
-interface AssLine {
-  start: number;
-  end: number;
-  lyric: string;
-  style?: string;
 }
 
 export const kfnLyricsBuilder = (

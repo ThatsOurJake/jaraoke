@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { INFO_FILE_NAME, VERSIONS } from '../constants';
@@ -14,23 +15,33 @@ interface JaraokeFileMeta {
   year?: string;
 }
 
-export interface JaraokeFile {
+interface BaseJarokeFIle {
   metadata: JaraokeFileMeta;
-  tracks: JaraokeTrack[];
-  lyrics: string;
   version: number;
+  id: string;
+  parentDir?: string;
 }
 
-export interface JaraokeCDGFile {
-  metadata: JaraokeFileMeta;
+export interface JaraokeFile extends BaseJarokeFIle {
+  tracks: JaraokeTrack[];
+  lyrics: string;
+}
+
+export interface JaraokeCDGFile extends BaseJarokeFIle {
   video: string;
-  version: number;
 }
 
 const logger = createLogger('jaraoke-info-file');
 
+const idHash = (metadata: JaraokeFileMeta) => {
+  const str = Object.values(metadata).join('|');
+  return crypto.createHash('md5').update(str).digest('hex');
+};
+
 export const createJaraokeInfoFile = (
-  details: Omit<JaraokeFile, 'version'> | Omit<JaraokeCDGFile, 'version'>,
+  details:
+    | Omit<JaraokeFile, 'version' | 'id'>
+    | Omit<JaraokeCDGFile, 'version' | 'id'>,
   directory: string,
 ) => {
   if (!fs.existsSync(directory)) {
@@ -41,6 +52,7 @@ export const createJaraokeInfoFile = (
 
   const data: JaraokeFile | JaraokeCDGFile = {
     ...details,
+    id: idHash(details.metadata),
     version: VERSIONS.jaraokeInfo,
   };
 

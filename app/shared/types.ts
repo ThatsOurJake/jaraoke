@@ -131,7 +131,18 @@ export interface AssLine {
 
 export interface Settings {
   ffmpegPath: string;
+  mpvPath: string;
   projectMHeadlessPath: string;
   visualsDirectory: string;
   version: number;
+}
+
+export interface VolumeOverride {
+  trackName: string;
+  volume: number; // Between 0 and 1
+}
+
+export interface PlayPayload {
+  id: string;
+  trackVolumes?: VolumeOverride[];
 }

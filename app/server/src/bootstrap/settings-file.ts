@@ -24,6 +24,7 @@ const readSettingsFile = () => {
 
 const initialSettings: Settings = {
   ffmpegPath: 'ffmpeg',
+  mpvPath: 'mpv',
   projectMHeadlessPath: path.join(BINARY_DIR_LOC, 'projectm-headless'),
   visualsDirectory: VISUALS_DIR_LOC,
   version: VERSIONS.settings,

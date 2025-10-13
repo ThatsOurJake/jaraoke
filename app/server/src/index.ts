@@ -1,4 +1,5 @@
 import Koa from 'koa';
+import bodyParser from 'koa-bodyparser';
 import { bootstrap } from './bootstrap';
 import { PORT } from './constants';
 import { apiRouter } from './routers/api';
@@ -16,6 +17,7 @@ app.use(async (ctx, next) => {
   logger.info(`${method} ${route} - ${ms}ms`);
 });
 
+app.use(bodyParser());
 app.use(apiRouter.routes()).use(apiRouter.allowedMethods());
 
 app.listen(PORT, () => {

@@ -20,7 +20,6 @@ export const determineFolderType = (dir: string): FolderType => {
   }
 
   if (
-    files.length === 2 &&
     files.find((x: string) => x.endsWith('cdg')) &&
     files.find((x: string) => x.endsWith('mp3'))
   ) {

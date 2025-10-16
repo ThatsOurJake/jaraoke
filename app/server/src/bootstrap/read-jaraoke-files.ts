@@ -36,7 +36,7 @@ export const readJaraokeFiles = () => {
     });
   }
 
-  logger.debug(`Parsed: ${output.length} Jaraoke files`);
+  logger.debug(`Parsed ${output.length} Jaraoke files`);
 
   store.karaokeFiles = output;
 };

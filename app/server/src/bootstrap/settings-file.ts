@@ -2,12 +2,7 @@ import fs, { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse, stringify } from 'ini';
 import type { Settings } from 'jaraoke-shared/types';
-import {
-  BINARY_DIR_LOC,
-  SETTINGS_FILE_LOC,
-  VERSIONS,
-  VISUALS_DIR_LOC,
-} from '../constants';
+import { SETTINGS_FILE_LOC, VERSIONS } from '../constants';
 import { store } from '../data/store';
 import { createLogger } from '../utils/logger';
 
@@ -25,8 +20,6 @@ const readSettingsFile = () => {
 const initialSettings: Settings = {
   ffmpegPath: 'ffmpeg',
   mpvPath: 'mpv',
-  projectMHeadlessPath: path.join(BINARY_DIR_LOC, 'projectm-headless'),
-  visualsDirectory: VISUALS_DIR_LOC,
   version: VERSIONS.settings,
 };
 

@@ -24,3 +24,9 @@ app.listen(PORT, () => {
   logger.info(`Jaraoke backend started on port: ${PORT}`);
   bootstrap();
 });
+
+process.on('uncaughtException', (err) => {
+  if (err) {
+    logger.error({ stack: err.stack }, err.message);
+  }
+});

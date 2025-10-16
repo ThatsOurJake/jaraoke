@@ -132,8 +132,6 @@ export interface AssLine {
 export interface Settings {
   ffmpegPath: string;
   mpvPath: string;
-  projectMHeadlessPath: string;
-  visualsDirectory: string;
   version: number;
 }
 

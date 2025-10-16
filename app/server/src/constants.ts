@@ -13,8 +13,6 @@ export const directories = (() => {
     root: rootDir,
     songs: path.join(rootDir, 'songs'),
     temp: path.join(rootDir, 'temp'),
-    visuals: path.join(rootDir, 'visuals'),
-    binaries: path.join(rootDir, 'binaries'),
   };
 })();
 
@@ -34,8 +32,10 @@ export const BG_VISUALS_FILE_NAME = 'bg.mp4';
 
 export const SETTINGS_FILE_LOC = path.join(installLocation, 'settings.ini');
 
-export const BINARY_DIR_LOC = path.join(installLocation, 'binaries');
-export const VISUALS_DIR_LOC = path.join(installLocation, 'visuals');
+export const ASSETS_DIR_LOC = path.join(installLocation, 'assets');
+export const assetDirectories = {
+  backgrounds: path.join(ASSETS_DIR_LOC, 'backgrounds'),
+};
 
 export const SAFE_DIR_NAME = 'Original Contents';
 

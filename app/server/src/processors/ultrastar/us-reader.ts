@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
 import type { RPartial, UltrastarFile } from 'jaraoke-shared/types';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('ultrastar-reader');
 
 export const usReader = (textFileLoc: string) => {
   const fileDetails: UltrastarFile | null = null;
@@ -75,7 +78,7 @@ export const usReader = (textFileLoc: string) => {
             output.video = value;
             break;
           default:
-            console.warn(`Unhandled attribute: ${key}`);
+            logger.debug(`Unhandled attribute: ${key}`);
             break;
         }
         continue;

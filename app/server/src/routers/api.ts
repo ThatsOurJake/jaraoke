@@ -47,9 +47,9 @@ apiRouter.post('/play', (ctx) => {
     return;
   }
 
-  const foundTrack = store.karaokeFiles.find((x) => x.id === payload.id);
+  const foundSong = store.karaokeFiles.find((x) => x.id === payload.id);
 
-  if (!foundTrack) {
+  if (!foundSong) {
     ctx.status = 404;
 
     ctx.body = {
@@ -59,7 +59,7 @@ apiRouter.post('/play', (ctx) => {
     return;
   }
 
-  playKaraoke(foundTrack, payload.trackVolumes);
+  playKaraoke(foundSong, payload.trackVolumes);
 
   ctx.status = 202;
 });

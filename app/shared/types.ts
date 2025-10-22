@@ -136,7 +136,7 @@ export interface Settings {
 }
 
 export interface VolumeOverride {
-  trackName: string;
+  trackFileName: string;
   volume: number; // Between 0 and 1
 }
 
@@ -144,3 +144,32 @@ export interface PlayPayload {
   id: string;
   trackVolumes?: VolumeOverride[];
 }
+
+export interface JaraokeTrack {
+  name: string;
+  fileName: string;
+}
+
+export interface JaraokeFileMeta {
+  title: string;
+  artist?: string;
+  year?: string;
+}
+
+interface BaseJarokeFIle {
+  metadata: JaraokeFileMeta;
+  version: number;
+  id: string;
+  parentDir?: string;
+}
+
+export interface JaraokeFile extends BaseJarokeFIle {
+  tracks: JaraokeTrack[];
+  lyrics: string;
+}
+
+export interface JaraokeCDGFile extends BaseJarokeFIle {
+  video: string;
+}
+
+export type CombinedJaraokeFiles = JaraokeFile | JaraokeCDGFile;

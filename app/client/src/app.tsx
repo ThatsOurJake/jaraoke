@@ -1,43 +1,24 @@
-import { useState } from 'preact/hooks'
-import preactLogo from './assets/preact.svg'
-import viteLogo from '/vite.svg'
-import './app.css'
+import { LocationProvider, Route, Router } from 'preact-iso';
+import { HomeScreen } from './screens/home';
 
-export function App() {
-  const [count, setCount] = useState(0)
-
+export const App = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} class="logo" alt="Vite logo" />
-        </a>
-        <a href="https://preactjs.com" target="_blank">
-          <img src={preactLogo} class="logo preact" alt="Preact logo" />
-        </a>
-      </div>
-      <h1>Vite + Preact</h1>
-      <div class="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/app.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p>
-        Check out{' '}
-        <a
-          href="https://preactjs.com/guide/v10/getting-started#create-a-vite-powered-preact-app"
-          target="_blank"
+    <LocationProvider>
+      <div className="w-full h-full flex flex-col">
+        <header className="py-3 bg-purple-950 shadow">
+          <p className="text-3xl text-center text-white">Jaraoke</p>
+        </header>
+        <div
+          className="py-4 overflow-y-scroll h-full w-full bg-cover flex"
+          style={{ backgroundImage: 'url("/OAK41A0.jpg")' }}
         >
-          create-preact
-        </a>
-        , the official Preact + Vite starter
-      </p>
-      <p class="read-the-docs">
-        Click on the Vite and Preact logos to learn more
-      </p>
-    </>
-  )
-}
+          <Router>
+            <Route path="/" component={HomeScreen} />
+            {/* Extra route to stop types moaning */}
+            <Route path="*" component={() => <div />} />
+          </Router>
+        </div>
+      </div>
+    </LocationProvider>
+  );
+};

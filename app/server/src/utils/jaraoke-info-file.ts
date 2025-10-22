@@ -1,35 +1,14 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import type {
+  CombinedJaraokeFiles,
+  JaraokeCDGFile,
+  JaraokeFile,
+  JaraokeFileMeta,
+} from 'jaraoke-shared/types';
 import { INFO_FILE_NAME, VERSIONS } from '../constants';
 import { createLogger } from './logger';
-
-export interface JaraokeTrack {
-  name: string;
-  fileName: string;
-}
-
-interface JaraokeFileMeta {
-  title: string;
-  artist?: string;
-  year?: string;
-}
-
-interface BaseJarokeFIle {
-  metadata: JaraokeFileMeta;
-  version: number;
-  id: string;
-  parentDir?: string;
-}
-
-export interface JaraokeFile extends BaseJarokeFIle {
-  tracks: JaraokeTrack[];
-  lyrics: string;
-}
-
-export interface JaraokeCDGFile extends BaseJarokeFIle {
-  video: string;
-}
 
 const logger = createLogger('jaraoke-info-file');
 
@@ -50,7 +29,7 @@ export const createJaraokeInfoFile = (
     );
   }
 
-  const data: JaraokeFile | JaraokeCDGFile = {
+  const data: CombinedJaraokeFiles = {
     ...details,
     id: idHash(details.metadata),
     version: VERSIONS.jaraokeInfo,

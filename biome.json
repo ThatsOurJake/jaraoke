@@ -33,6 +33,9 @@
           "level": "warn",
           "options": {}
         }
+      },
+      "a11y": {
+        "useKeyWithClickEvents": "off"
       }
     }
   },

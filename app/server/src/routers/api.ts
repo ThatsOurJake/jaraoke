@@ -32,7 +32,12 @@ apiRouter.get('/events', (ctx) => {
 });
 
 apiRouter.get('/songs', (ctx) => {
-  ctx.body = store.karaokeFiles;
+  // TODO: Sort method
+  const output = store.karaokeFiles.sort((a, b) =>
+    a.metadata.title.localeCompare(b.metadata.title),
+  );
+
+  ctx.body = output;
 });
 
 apiRouter.post('/play', (ctx) => {

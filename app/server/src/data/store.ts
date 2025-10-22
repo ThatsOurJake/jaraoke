@@ -1,7 +1,4 @@
-import type { Settings } from 'jaraoke-shared/types';
-import type { JaraokeCDGFile, JaraokeFile } from '../utils/jaraoke-info-file';
-
-type CombinedJaraokeFiles = JaraokeFile | JaraokeCDGFile;
+import type { CombinedJaraokeFiles, Settings } from 'jaraoke-shared/types';
 
 class Store {
   private _settings: Settings | null = null;

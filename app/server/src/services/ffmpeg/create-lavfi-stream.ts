@@ -1,9 +1,12 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { VolumeOverride } from 'jaraoke-shared/types';
+import type {
+  JaraokeFile,
+  JaraokeTrack,
+  VolumeOverride,
+} from 'jaraoke-shared/types';
 import { assetDirectories, directories } from '../../constants';
-import type { JaraokeFile } from '../../utils/jaraoke-info-file';
 import { createLogger } from '../../utils/logger';
 import { rng } from '../../utils/rng';
 
@@ -12,7 +15,6 @@ const logger = createLogger('create-lavfi-stream');
 // TODO: Toggle from settings for backgrounds
 
 const getBackgroundAsset = (): string | null => {
-  console.log(assetDirectories.backgrounds);
   if (!fs.existsSync(assetDirectories.backgrounds)) {
     return null;
   }
@@ -34,8 +36,10 @@ export const createLavfiStream = (
   const lyricsPath = path.join(songDir, lyrics);
   const video = getBackgroundAsset();
 
-  const audioComplexes = tracks.map((t, index) => {
-    let volume = volumeOverrides.find((x) => x.trackName === t.name)?.volume;
+  const audioComplexes = tracks.map((t: JaraokeTrack, index: number) => {
+    let volume = volumeOverrides.find(
+      (x) => x.trackFileName === t.fileName,
+    )?.volume;
 
     if (volume === undefined || volume < 0 || volume > 1) {
       logger.warn(

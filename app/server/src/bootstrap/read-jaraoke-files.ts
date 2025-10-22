@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
 import { directories, INFO_FILE_NAME } from '../constants';
 import { store } from '../data/store';
-import type { JaraokeCDGFile, JaraokeFile } from '../utils/jaraoke-info-file';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('bootstrap:read-karaoke-files');
@@ -25,11 +25,11 @@ export const readJaraokeFiles = () => {
       return acc;
     }, []);
 
-  const output: (JaraokeFile | JaraokeCDGFile)[] = [];
+  const output: CombinedJaraokeFiles[] = [];
 
   for (const f of files) {
     const contents = fs.readFileSync(f.filePath).toString();
-    const parsed = JSON.parse(contents) as JaraokeFile | JaraokeCDGFile;
+    const parsed = JSON.parse(contents) as CombinedJaraokeFiles;
     output.push({
       ...parsed,
       parentDir: f.parentDir,

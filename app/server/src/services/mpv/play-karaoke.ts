@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import type { VolumeOverride } from 'jaraoke-shared/types';
-import { directories } from '../../constants';
 import type {
+  CombinedJaraokeFiles,
   JaraokeCDGFile,
   JaraokeFile,
-} from '../../utils/jaraoke-info-file';
+  VolumeOverride,
+} from 'jaraoke-shared/types';
+import { directories } from '../../constants';
 import { createLogger } from '../../utils/logger';
 import { createLavfiStream } from '../ffmpeg/create-lavfi-stream';
 
@@ -51,7 +52,7 @@ const playTrackSources = (
 };
 
 export const playKaraoke = (
-  song: JaraokeFile | JaraokeCDGFile,
+  song: CombinedJaraokeFiles,
   trackVolumes: VolumeOverride[] = [],
 ) => {
   if (isPlaying) {

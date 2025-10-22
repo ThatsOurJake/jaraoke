@@ -6,6 +6,7 @@ import {
   US_TEMP_AUDIO_FILE,
   US_TEMP_INFO_FILE,
 } from '../../constants';
+import { imageToBase64 } from '../../utils/image-to-base64';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
 import { createLogger } from '../../utils/logger';
 import { moveFiles } from '../../utils/move-files';
@@ -40,7 +41,7 @@ export const ultastarProcessor: Processor = async (
   try {
     const reader = usReader(destUsInfoFile);
     const details = reader.getDetails();
-    const { metadata, duration } = details;
+    const { metadata, duration, cover } = details;
 
     const lyricBuilder = usLyricsBuilder(details);
     const lyrics = lyricBuilder.toAss();
@@ -60,6 +61,9 @@ export const ultastarProcessor: Processor = async (
           },
         ],
         lyrics: LYRICS_FILE_NAME,
+        coverPhoto: cover
+          ? imageToBase64(path.join(directory, cover))
+          : undefined,
       },
       directories.temp,
     );

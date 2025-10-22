@@ -5,6 +5,7 @@ import type {
   VolumeOverride,
 } from 'jaraoke-shared/types';
 import { useCallback, useEffect, useRef } from 'preact/hooks';
+import { PLACEHOLDER_ALBUM_COVER } from '../../constants';
 import { formatTime } from '../../utils/format-time';
 import { NormalButton } from '../buttons/normal-btn';
 import { MicrophoneIcon } from '../icons/microphone';
@@ -69,6 +70,8 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
     }
   }, [selectedSong]);
 
+  const imgSrc = selectedSong?.coverPhoto || PLACEHOLDER_ALBUM_COVER;
+
   return (
     <div className="bg-white rounded w-full h-full p-2 flex flex-col border-2 drop-shadow">
       {!selectedSong && (
@@ -85,7 +88,7 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
         <>
           <div className="h-1/4 py-2">
             <img
-              src="/album.png"
+              src={imgSrc}
               alt="placeholder album"
               className="h-full aspect-square border-2 mx-auto"
             />

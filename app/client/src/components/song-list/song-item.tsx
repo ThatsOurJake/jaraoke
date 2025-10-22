@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
+import { PLACEHOLDER_ALBUM_COVER } from '../../constants';
 import { formatTime } from '../../utils/format-time';
 
 interface SongItemProps {
@@ -27,13 +28,16 @@ export const SongItem = ({
 
   const {
     metadata: { title, artist, year, duration },
+    coverPhoto,
     id,
   } = song;
+
+  const imgSrc = coverPhoto || PLACEHOLDER_ALBUM_COVER;
 
   return (
     <li className={classes} data-id={id} onClick={() => onSongSelected(song)}>
       <img
-        src="/album.png"
+        src={imgSrc}
         alt="placeholder album"
         className="h-12 aspect-square border-2"
       />

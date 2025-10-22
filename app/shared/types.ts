@@ -162,6 +162,7 @@ interface BaseJarokeFIle {
   metadata: JaraokeFileMeta;
   version: number;
   id: string;
+  coverPhoto?: string;
   parentDir?: string;
 }
 

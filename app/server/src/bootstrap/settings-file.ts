@@ -1,5 +1,4 @@
 import fs, { writeFileSync } from 'node:fs';
-import path from 'node:path';
 import { parse, stringify } from 'ini';
 import type { Settings } from 'jaraoke-shared/types';
 import { SETTINGS_FILE_LOC, VERSIONS } from '../constants';
@@ -19,6 +18,7 @@ const readSettingsFile = () => {
 
 const initialSettings: Settings = {
   ffmpegPath: 'ffmpeg',
+  ffprobePath: 'ffprobe',
   mpvPath: 'mpv',
   version: VERSIONS.settings,
 };

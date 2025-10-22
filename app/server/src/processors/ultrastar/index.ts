@@ -40,7 +40,7 @@ export const ultastarProcessor: Processor = async (
   try {
     const reader = usReader(destUsInfoFile);
     const details = reader.getDetails();
-    const { metadata } = details;
+    const { metadata, duration } = details;
 
     const lyricBuilder = usLyricsBuilder(details);
     const lyrics = lyricBuilder.toAss();
@@ -51,6 +51,7 @@ export const ultastarProcessor: Processor = async (
           title: metadata.title,
           artist: metadata.artist,
           year: metadata.year,
+          duration: Math.floor(duration || 0),
         },
         tracks: [
           {

@@ -5,6 +5,7 @@ import type {
   VolumeOverride,
 } from 'jaraoke-shared/types';
 import { useCallback, useEffect, useRef } from 'preact/hooks';
+import { formatTime } from '../../utils/format-time';
 import { NormalButton } from '../buttons/normal-btn';
 import { MicrophoneIcon } from '../icons/microphone';
 import { TrackList } from '../track-list';
@@ -94,6 +95,11 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
             <p className="text-center text-sm">
               {metadata?.artist || 'Unknown'} - {metadata?.year || 'Unknown'}
             </p>
+            {metadata?.duration && metadata.duration > 0 && (
+              <p className="text-center text-xs">
+                Duration: {formatTime(metadata.duration)}
+              </p>
+            )}
             {tracks.length > 1 && (
               <TrackList tracks={tracks} onChange={onTrackToggle} />
             )}

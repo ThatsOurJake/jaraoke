@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
+import { formatTime } from '../../utils/format-time';
 
 interface SongItemProps {
   isSelected?: boolean;
@@ -25,7 +26,7 @@ export const SongItem = ({
   );
 
   const {
-    metadata: { title, artist, year },
+    metadata: { title, artist, year, duration },
     id,
   } = song;
 
@@ -43,7 +44,7 @@ export const SongItem = ({
         </p>
       </div>
       <div className="flex items-center px-3">
-        <p>TODO</p>
+        {duration && duration > 0 && <p>{formatTime(duration)}</p>}
       </div>
     </li>
   );

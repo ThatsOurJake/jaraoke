@@ -32,6 +32,7 @@ export const cdgProcessor: Processor = async (
   const fileMetaData = await parseFile(path.join(directory, audio));
   const {
     common: { artist, title, year },
+    format: { duration },
   } = fileMetaData;
 
   const infoFileLocation = createJaraokeInfoFile(
@@ -40,6 +41,7 @@ export const cdgProcessor: Processor = async (
         title: title || audio,
         artist: artist || '',
         year: year?.toString() || '',
+        duration: Math.floor(duration || 0),
       },
       video: CDG_COMBINED_FILE_NAME,
     },

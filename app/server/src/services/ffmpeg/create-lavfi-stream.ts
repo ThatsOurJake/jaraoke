@@ -42,7 +42,7 @@ export const createLavfiStream = (
     )?.volume;
 
     if (volume === undefined || volume < 0 || volume > 1) {
-      logger.warn(
+      logger.debug(
         `Volume: ${volume} must be between 0 and 1 for ${t.fileName} - setting to "1"`,
       );
 

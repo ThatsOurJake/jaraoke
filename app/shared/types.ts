@@ -19,7 +19,7 @@ export interface KFNHeader {
   MUSL?: string;
   FLID?: string;
   /**
-   * Language of ttrack
+   * Language of track
    */
   LANG?: string;
   /**
@@ -131,6 +131,7 @@ export interface AssLine {
 
 export interface Settings {
   ffmpegPath: string;
+  ffprobePath: string;
   mpvPath: string;
   version: number;
 }
@@ -154,6 +155,7 @@ export interface JaraokeFileMeta {
   title: string;
   artist?: string;
   year?: string;
+  duration?: number; // Seconds
 }
 
 interface BaseJarokeFIle {

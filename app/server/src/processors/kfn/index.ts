@@ -1,10 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { JaraokeTrack } from 'jaraoke-shared/types';
 import { directories, LYRICS_FILE_NAME } from '../../constants';
-import {
-  createJaraokeInfoFile,
-  type JaraokeTrack,
-} from '../../utils/jaraoke-info-file';
+import { probeDuration } from '../../services/ffmpeg/probe-duration';
+import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
 import { createLogger } from '../../utils/logger';
 import { moveFiles } from '../../utils/move-files';
 import type { Processor } from '../processor-map';
@@ -42,6 +41,22 @@ export const kfnProcessor: Processor = async (
     const metadata = infoFile.getMetadata();
     const tracks = infoFile.getTracks();
     const lyrics = lyricBuilder.toAss();
+    const headers = await reader.getHeader();
+
+    let duration = 0;
+
+    if (headers.MUSL && headers.MUSL !== '0') {
+      const parsed = parseInt(headers.MUSL, 10);
+
+      if (!Number.isNaN(parsed)) {
+        duration = Math.floor(parsed);
+      }
+    } else {
+      const probeResp = await probeDuration(
+        path.join(directories.temp, tracks[0].fileName),
+      );
+      duration = probeResp || 0;
+    }
 
     const mappedTracks: JaraokeTrack[] = tracks.map((x) => {
       return {
@@ -57,6 +72,7 @@ export const kfnProcessor: Processor = async (
           title: metadata?.title,
           artist: metadata?.artist,
           year: metadata?.year,
+          duration: Math.floor(duration || 0),
         },
         tracks: mappedTracks,
         lyrics: LYRICS_FILE_NAME,

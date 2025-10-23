@@ -1,4 +1,4 @@
-import fs, { lstatSync, mkdirSync, rmSync } from 'node:fs';
+import fs, { lstatSync } from 'node:fs';
 import path from 'node:path';
 import { directories, INFO_FILE_NAME } from '../constants';
 import { PROCESSOR_MAP } from '../processors/processor-map';

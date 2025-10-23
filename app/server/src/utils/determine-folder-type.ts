@@ -1,10 +1,12 @@
 import fs from 'node:fs';
+
 import { IGNORED_FILES } from '../constants';
 
 export enum FolderType {
   CDG,
   KARAFUN,
   ULTRA_STAR,
+  LRC,
   NOT_SUPPORTED,
 }
 
@@ -31,6 +33,15 @@ export const determineFolderType = (dir: string): FolderType => {
     files.find((x: string) => x.endsWith('mp3'))
   ) {
     return FolderType.ULTRA_STAR;
+  }
+
+  if (
+    files.find((x: string) => x.endsWith('lrc')) &&
+    (files.find((x: string) => x.endsWith('mp3')) ||
+      files.find((x: string) => x.endsWith('ogg')) ||
+      files.find((x: string) => x.endsWith('flac')))
+  ) {
+    return FolderType.LRC;
   }
 
   return FolderType.NOT_SUPPORTED;

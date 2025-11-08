@@ -48,10 +48,7 @@ export const lrcProcessor: Processor = async (
       lrcFile: fullLrcPath,
     });
 
-    const lyrics = lyricsBuilder.toAss({
-      paddingTiming: 150,
-      highlightColour: '&HFFFFFF&',
-    });
+    const lyrics = lyricsBuilder.toAss();
 
     const infoFileLocation = createJaraokeInfoFile(
       {

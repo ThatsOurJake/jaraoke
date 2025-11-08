@@ -16,7 +16,7 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
   const fileContents = fs.readFileSync(opts.lrcFile).toString();
   const lyricLines: LRCLine[] = fileContents
     .split('\n')
-    .map((line) => {
+    .map((line: string) => {
       const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2})\](.*)/);
       const startTime = match
         ? parseInt(match[1], 10) * 6000 +
@@ -43,40 +43,18 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
     return `${pad(minutes)}:${pad(seconds)}.${pad(ms)}`;
   };
 
-  const constructCountdown = (
-    firstTiming: number,
-    startingNumber: number = 3,
-    paddingTiming: number = 100,
-  ): AssLine[] => {
-    return Array(startingNumber)
-      .fill(() => undefined)
-      .map((_, index) => {
-        const number = startingNumber - index;
-        const centiseconds = number * 100;
-
-        return {
-          start: firstTiming - centiseconds - 100 - paddingTiming,
-          end: firstTiming - centiseconds - paddingTiming,
-          lyric: `{\\fad(300,300)}${number}`,
-          style: 'Countdown',
-        };
-      });
-  };
-
-  const toAss = (options?: LyricBuilderAssOptions) => {
+  const toAss = (options?: Pick<LyricBuilderAssOptions, 'font' | 'fontSize' | 'highlightColour' | 'screen'>) => {
     const {
-      paddingTiming = 100,
       font = 'IMPACT',
       fontSize = 48,
       highlightColour = '&H00FF00&',
-      maxLinesOnScreen = 4,
       screen,
     } = options || {};
 
     const { width = 1280, height = 720 } = screen || {};
 
-    const initialStartPos = height / maxLinesOnScreen;
-    const positions = Array(maxLinesOnScreen)
+    const initialStartPos = height / 3;
+    const positions = Array(3)
       .fill((_: any) => undefined)
       .map((_, i) => initialStartPos + fontSize * i);
     const CENTER_X = width / 2;
@@ -103,49 +81,38 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     const assLines: string[] = [];
     const lines: AssLine[] = [];
-    const HIGHLIGHT_TEMPLATE = `\\r\\1c${highlightColour}`;
+    const HIGHLIGHT_TEMPLATE = `\\r\\1c${highlightColour}\\b1`;
 
-    for (const line of lyricLines) {
+    for (let i = 0; i < lyricLines.length; i++) {
+      const line = lyricLines[i];
       const startingTiming = line.startTime;
 
-      const paddingStart = startingTiming - paddingTiming;
-      const paddingEnd = startingTiming + paddingTiming;
+      const start = i === 0 ? startingTiming - 200 : startingTiming;
 
       lines.push({
-        start: paddingStart,
-        end: paddingEnd,
+        start,
+        end: startingTiming,
         lyric: line.str,
       });
     }
 
-    const countdownLines = constructCountdown(
-      lines[0].start + paddingTiming,
-      3,
-      paddingTiming,
-    );
+    for(let i = 0; i < lines.length; i++) {
+      const chunk: AssLine[] = [
+        lines[i - 1],
+        lines[i],
+        lines[i + 1]
+      ];
 
-    for (const line of countdownLines) {
-      const startTiming = convertTiming(line.start);
-      const endTiming = convertTiming(line.end);
+      const startTiming = convertTiming(chunk[1].start);
+      const endTiming = convertTiming(chunk[2]?.start || chunk[1].end);
 
-      const prefixTemplate = `{\\pos(${CENTER_X},${height / 2})}`;
-      const formattedLine = `Dialogue: 0,0:${startTiming},0:${endTiming},Countdown,,0,0,0,,${prefixTemplate}${line.lyric}`;
-      assLines.push(formattedLine);
-    }
-
-    for (let i = 0; i < lines.length; i += maxLinesOnScreen) {
-      const chunk = lines.slice(i, i + maxLinesOnScreen);
-
-      for (let j = 0; j < chunk.length; j++) {
+      for(let j = 0; j < chunk.length; j++) {
         const line = chunk[j];
-        const startTiming = convertTiming(line.start);
-        const endTiming = convertTiming(line.end);
         const pos = positions[j];
 
-        // TODO: If the timings between the next end and start are far away we can reset back to positions[0]
-
-        const prefixTemplate = `{\\k${paddingTiming}${HIGHLIGHT_TEMPLATE}\\pos(${CENTER_X},${pos})}`;
-        const formattedLine = `Dialogue: 0,0:${startTiming},0:${endTiming},Default,,0,0,0,,${prefixTemplate}${line.lyric}`;
+        const lyric = line?.lyric || '';
+        const prefixTemplate = j == 1 ? `{${HIGHLIGHT_TEMPLATE}\\pos(${CENTER_X},${pos})}` : `{\\pos(${CENTER_X},${pos})}`;
+        const formattedLine = `Dialogue: 0,0:${startTiming},0:${endTiming},Default,,0,0,0,,${prefixTemplate}${lyric}`;
         assLines.push(formattedLine);
       }
     }

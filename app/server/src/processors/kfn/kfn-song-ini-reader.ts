@@ -83,6 +83,22 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
     return 'UNKNOWN';
   };
 
+  const constructTrackName = (trackType: kfnTrackTypes, kfnTrackName: string) => {
+    if (trackType === 'BACKING_VOCALS') {
+      return 'Backing Vocals';
+    }
+    
+    if (trackType === 'LEAD' && kfnTrackName.length > 0) {
+      return `Lead vocals [${kfnTrackName}]`;
+    }
+    
+    if (trackType === 'LEAD' && !kfnTrackName) {
+      return `Lead vocals`;
+    }
+
+    return trackType;
+  };
+
   const getTracks = (): KFNTrack[] => {
     const ini = getIni();
     const { general, mp3music } = ini;
@@ -96,23 +112,35 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
     const tracks = Object.entries(mp3music).filter(([key]) =>
       key.startsWith('track'),
     );
-    const mappedTracks: KFNTrack[] = tracks.map((x) => {
+
+    let mappedTracks: KFNTrack[] = tracks.map((x) => {
       const [_, value] = x;
-      const [fileName, _0, _1, gender] = (value as string).split(',');
+      const [fileName, _0, _1, trackName] = (value as string).split(',');
+
+      const trackType = fileNameToType(fileName);
 
       return {
         fileName,
-        gender: (gender as KFNTrack['gender']) || 'NA',
-        type: fileNameToType(fileName),
+        trackName: constructTrackName(trackType, trackName),
+        type: trackType,
+        isToggleable: true,
       };
     });
+
+    const multipleLeads = mappedTracks.filter(x => x.type === 'LEAD').length > 1;
+
+    if (multipleLeads) {
+      // Not ideal but this will remove the mixed lead vocal tracks
+      mappedTracks = mappedTracks.filter(x => !x.fileName.includes('mixed'));
+    }
 
     return [
       ...mappedTracks,
       {
         fileName: instrumentalTrack,
-        gender: 'NA',
+        trackName: 'General',
         type: 'INSTRUMENTAL',
+        isToggleable: false,
       },
     ];
   };

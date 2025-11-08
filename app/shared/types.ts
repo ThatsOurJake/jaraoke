@@ -72,8 +72,9 @@ export type kfnTrackTypes =
 
 export interface KFNTrack {
   fileName: string;
-  gender: 'MALE' | 'FEMALE' | 'NA';
+  trackName: string;
   type: kfnTrackTypes;
+  isToggleable: boolean;
 }
 
 export type RPartial<T> = {
@@ -149,6 +150,7 @@ export interface PlayPayload {
 export interface JaraokeTrack {
   name: string;
   fileName: string;
+  isToggleable: boolean;
 }
 
 export interface JaraokeFileMeta {

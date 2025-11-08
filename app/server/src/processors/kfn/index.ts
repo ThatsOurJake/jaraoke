@@ -60,9 +60,9 @@ export const kfnProcessor: Processor = async (
 
     const mappedTracks: JaraokeTrack[] = tracks.map((x) => {
       return {
-        // TODO: Better naming
-        name: x.type.toString(),
+        name: x.trackName,
         fileName: x.fileName,
+        isToggleable: x.isToggleable,
       };
     });
 

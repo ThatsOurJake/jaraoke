@@ -7,10 +7,6 @@ import {
   determineFolderType,
   FolderType,
 } from '../utils/determine-folder-type';
-import {
-  type BootstrapProcessSongsPayload,
-  sendEvent,
-} from '../utils/event-system';
 import { createLogger } from '../utils/logger';
 
 interface ReadDirectoriesResult {
@@ -65,34 +61,11 @@ export const processSongs = async () => {
     logger.warn(`Could not process: "${item.dir}" because "${item.reason}"`);
   }
 
-  const songDirCount = toBeProcessed.length;
-  let songsProcessed = 0;
-
-  sendEvent<BootstrapProcessSongsPayload>('bootstrap:process-songs', {
-    numberOfSongs: songDirCount,
-    isDone: false,
-  });
-
   for (const item of toBeProcessed) {
-    sendEvent<BootstrapProcessSongsPayload>('bootstrap:process-songs', {
-      numberOfSongs: songDirCount,
-      currentDir: item.dir,
-      songsProcessed,
-      isDone: false,
-    });
-
     const processorFunc = PROCESSOR_MAP[item.type];
 
     await processorFunc(item.dir);
 
-    songsProcessed++;
-
     cleanDir(directories.temp);
   }
-
-  sendEvent<BootstrapProcessSongsPayload>('bootstrap:process-songs', {
-    numberOfSongs: songDirCount,
-    songsProcessed,
-    isDone: true,
-  });
 };

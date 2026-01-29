@@ -1,13 +1,10 @@
 import fs from 'node:fs';
 import { directories } from '../constants';
-import { sendEvent } from '../utils/event-system';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('bootstrap:create-directories');
 
 export const createDirectories = () => {
-  sendEvent('bootstrap:create-directories');
-
   for (const entry of Object.entries(directories)) {
     const [key, value] = entry;
 

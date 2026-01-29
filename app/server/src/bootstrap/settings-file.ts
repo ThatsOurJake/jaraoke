@@ -7,10 +7,25 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('bootstrap:settings-file');
 
+const migrate = (ini: Settings) => {
+  let hasMigrations = false;
+
+  if (ini.version === '1') {
+    hasMigrations = true;
+    ini.player = 'mpv';
+  }
+
+  if (hasMigrations) {
+    logger.info('Migrated settings file');
+    saveSettingsFile(ini);
+  }
+};
+
 const readSettingsFile = () => {
   const contents = fs.readFileSync(SETTINGS_FILE_LOC);
   const ini = parse(contents.toString()) as Settings;
   // TODO: validation
+  migrate(ini);
   store.settings = ini;
   logger.info(`Read and store settings from file @ "${SETTINGS_FILE_LOC}"`);
   logger.debug(`Settings file: ${JSON.stringify(ini, null, 2)}`);
@@ -20,12 +35,18 @@ const initialSettings: Settings = {
   ffmpegPath: 'ffmpeg',
   ffprobePath: 'ffprobe',
   mpvPath: 'mpv',
-  version: VERSIONS.settings,
+  player: 'mpv',
+  version: VERSIONS.settings.toString(),
 };
 
 const createSettingsFile = () => {
   writeFileSync(SETTINGS_FILE_LOC, stringify(initialSettings));
   logger.info(`Created and stored settings file @ "${SETTINGS_FILE_LOC}"`);
+};
+
+const saveSettingsFile = (ini: Settings) => {
+  writeFileSync(SETTINGS_FILE_LOC, stringify(ini));
+  logger.info(`Saved settings file @ "${SETTINGS_FILE_LOC}"`);
 };
 
 export const createAndReadSettingsFile = () => {

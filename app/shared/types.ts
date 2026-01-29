@@ -134,7 +134,8 @@ export interface Settings {
   ffmpegPath: string;
   ffprobePath: string;
   mpvPath: string;
-  version: number;
+  player: 'mpv' | 'web';
+  version: string;
 }
 
 export interface VolumeOverride {

@@ -1,4 +1,4 @@
-import fs, { lstat, lstatSync } from 'node:fs';
+import fs, { lstatSync } from 'node:fs';
 import path from 'node:path';
 import { IGNORED_FILES, SAFE_DIR_NAME } from '../constants';
 import { cleanDir } from './clean-dir';

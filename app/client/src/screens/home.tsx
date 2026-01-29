@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import { Loading } from '../components/loading';
 import { SongList } from '../components/song-list';
 import { SongPanel } from '../components/song-panel';
+import { Wrapper } from '../components/wrapper';
 
 export const HomeScreen = () => {
   const [isLoading, setLoading] = useState<boolean>(true);
@@ -48,7 +49,7 @@ export const HomeScreen = () => {
   }
 
   return (
-    <>
+    <Wrapper>
       <div className="overflow-y-scroll h-full max-h-full w-1/2 px-4 py-2">
         <SongList
           songs={songs}
@@ -59,6 +60,6 @@ export const HomeScreen = () => {
       <div className="w-1/2 px-4 py-2 h-full">
         <SongPanel selectedSong={selectedSong} />
       </div>
-    </>
+    </Wrapper>
   );
 };

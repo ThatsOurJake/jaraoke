@@ -1,8 +1,8 @@
-interface JARAOKE  {
+interface JARAOKE {
   settings: {
-    player: 'mpv' | 'web'
-  }
-};
+    player: 'mpv' | 'web';
+  };
+}
 
 declare global {
   interface Window {
@@ -12,9 +12,9 @@ declare global {
 
 const defaultJaraoke: JARAOKE = {
   settings: {
-    player: 'mpv'
-  }
-}
+    player: 'mpv',
+  },
+};
 
 export const getSettings = (): JARAOKE['settings'] => {
   if (window && window.__JARAOKE__) {

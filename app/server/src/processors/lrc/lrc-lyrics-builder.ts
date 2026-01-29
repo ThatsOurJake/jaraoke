@@ -43,7 +43,12 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
     return `${pad(minutes)}:${pad(seconds)}.${pad(ms)}`;
   };
 
-  const toAss = (options?: Pick<LyricBuilderAssOptions, 'font' | 'fontSize' | 'highlightColour' | 'screen'>) => {
+  const toAss = (
+    options?: Pick<
+      LyricBuilderAssOptions,
+      'font' | 'fontSize' | 'highlightColour' | 'screen'
+    >,
+  ) => {
     const {
       font = 'IMPACT',
       fontSize = 48,
@@ -96,22 +101,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
       });
     }
 
-    for(let i = 0; i < lines.length; i++) {
-      const chunk: AssLine[] = [
-        lines[i - 1],
-        lines[i],
-        lines[i + 1]
-      ];
+    for (let i = 0; i < lines.length; i++) {
+      const chunk: AssLine[] = [lines[i - 1], lines[i], lines[i + 1]];
 
       const startTiming = convertTiming(chunk[1].start);
       const endTiming = convertTiming(chunk[2]?.start || chunk[1].end);
 
-      for(let j = 0; j < chunk.length; j++) {
+      for (let j = 0; j < chunk.length; j++) {
         const line = chunk[j];
         const pos = positions[j];
 
         const lyric = line?.lyric || '';
-        const prefixTemplate = j == 1 ? `{${HIGHLIGHT_TEMPLATE}\\pos(${CENTER_X},${pos})}` : `{\\pos(${CENTER_X},${pos})}`;
+        const prefixTemplate =
+          j === 1
+            ? `{${HIGHLIGHT_TEMPLATE}\\pos(${CENTER_X},${pos})}`
+            : `{\\pos(${CENTER_X},${pos})}`;
         const formattedLine = `Dialogue: 0,0:${startTiming},0:${endTiming},Default,,0,0,0,,${prefixTemplate}${lyric}`;
         assLines.push(formattedLine);
       }

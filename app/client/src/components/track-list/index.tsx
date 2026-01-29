@@ -11,9 +11,11 @@ export const TrackList = ({ tracks, onChange }: TrackListProps) => (
   <div className="h-full max-h-full overflow-y-auto">
     <p className="font-bold">Track Options</p>
     <ul className="py-2 gap-y-2 flex flex-col">
-      {tracks.filter(x => x.isToggleable).map((t) => (
-        <TrackItem track={t} onChange={onChange} />
-      ))}
+      {tracks
+        .filter((x) => x.isToggleable)
+        .map((t) => (
+          <TrackItem track={t} onChange={onChange} />
+        ))}
     </ul>
   </div>
 );

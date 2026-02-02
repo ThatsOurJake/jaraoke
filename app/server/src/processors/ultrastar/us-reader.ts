@@ -31,11 +31,9 @@ export const usReader = (textFileLoc: string) => {
         break;
       }
 
-      const sanitisedLine = line.trim();
-
-      if (sanitisedLine.startsWith('#')) {
+      if (line.startsWith('#')) {
         // Attributes line;
-        const [key, value] = sanitisedLine.slice(1).split(':');
+        const [key, value] = line.slice(1).split(':');
 
         switch (key.trim()) {
           case 'TITLE':
@@ -89,7 +87,7 @@ export const usReader = (textFileLoc: string) => {
       // Must be a note line
       let count = 0;
       let currentWord: string[] = [];
-      const letters = sanitisedLine.split('');
+      const letters = line.split('');
       const parts = letters.reduce((acc: string[], current: string, index) => {
         if (current === ' ' && count < 4) {
           acc.push(currentWord.join(''));

@@ -6,9 +6,11 @@ import type {
   VolumeOverride,
 } from 'jaraoke-shared/types';
 import { useCallback, useEffect, useState } from 'preact/hooks';
+import { Loading } from '../components/loading';
 import { CDGPlayer } from '../components/players/cdg';
 import { MainPlayer } from '../components/players/main';
 import { SONG_STORAGE_KEY } from '../constants';
+import { KaraokeEvent } from '../events/karaoke-event';
 
 export const PlayerScreen = () => {
   const [selectedSong, setSelectedSong] = useState<CombinedJaraokeFiles>();
@@ -42,10 +44,23 @@ export const PlayerScreen = () => {
     setTrackVolumes(parsedStoredSong.trackVolumes || []);
   }, []);
 
-  const onPlayerLoaded = useCallback(() => {}, []);
+  const onPlayerLoaded = useCallback(() => {
+    setTimeout(() => {
+      setLoading(false);
+      window.dispatchEvent(new KaraokeEvent('start'));
+    }, 500);
+  }, []);
 
   return (
-    <div>
+    <div className="relative">
+      <div
+        className={`${loading ? 'block' : 'hidden'} fixed top-0 left-0 right-0 bottom-0 z-80`}
+      >
+        <div className="w-full h-full flex flex-col justify-center items-center bg-black">
+          <Loading size="lg" />
+          <p className="font-bold text-white my-2">Loading Track</p>
+        </div>
+      </div>
       {songType === 'cdg' && (
         <CDGPlayer
           song={selectedSong as JaraokeCDGFile}

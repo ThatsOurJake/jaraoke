@@ -1,8 +1,9 @@
-import { Howl } from 'howler';
 import type { JaraokeFile, VolumeOverride } from 'jaraoke-shared/types';
-import { useEffect } from 'preact/hooks';
+import { useCallback, useRef } from 'preact/hooks';
+import { KaraokeEvent } from '../../events/karaoke-event';
 import { constructFileUrl } from '../../utils/construct-file-url';
-import { Visualiser } from '../visualisers/audio';
+import { AudioVisualiser } from '../visualisers/audio';
+import { LyricsVisualiser } from '../visualisers/lyrics';
 import { PlayerWrapper } from './wrapper';
 
 interface MainPlayerProps {
@@ -17,57 +18,52 @@ export const MainPlayer = ({
   trackVolumes,
 }: MainPlayerProps) => {
   const { lyrics, tracks, id: songId } = song;
-  const filteredTracks = tracks.filter(
-    (x) => !trackVolumes.find((y) => y.trackFileName === x.fileName),
-  );
+  const loadedRef = useRef<{ audio: boolean; lyrics: boolean }>({
+    audio: false,
+    lyrics: false,
+  });
 
   const lyricsUrl = constructFileUrl(songId, lyrics);
+  const audioTracks = tracks.map((x) => ({
+    ...x,
+    volume:
+      trackVolumes.find((y) => y.trackFileName === x.fileName)?.volume || 1,
+    isMainTrack: tracks.length === 1 || x.name === 'General',
+    url: constructFileUrl(songId, x.fileName),
+  }));
 
-  useEffect(() => {
-    const loadLyrics = async () => {};
-
-    loadLyrics();
+  const onPause = useCallback(() => {
+    window.dispatchEvent(new KaraokeEvent('pause'));
   }, []);
 
-  // const mainTrack = tracks.find(x => x.name === 'General')!;
-  // const audioUrl = `/api/song/${song.id}/${mainTrack.fileName}`;
-  // const audio = new Audio();
+  const onPlay = useCallback(() => {
+    window.dispatchEvent(new KaraokeEvent('play'));
+  }, []);
 
-  // useEffect(() => {
-  //   const tracks = song.tracks.filter(
-  //     (x) => !trackVolumes.find((y) => y.trackFileName === x.fileName),
-  //   );
+  const checkLoadedState = () => {
+    const { audio, lyrics } = loadedRef.current;
 
-  //   const loadTracks = async () => {
-  //     const audios = await Promise.allSettled<{
-  //       isBackingTrack: boolean;
-  //       sound: Howl;
-  //     }>(
-  //       tracks.map((x) => {
-  //         const audioSrc = `/api/song/${song.id}/${x.fileName}`;
-  //         const isBackingTrack = x.name === 'General';
-  //         return new Promise((resolve) => {
-  //           const sound = new Howl({
-  //             src: audioSrc,
-  //             onload: () => resolve({ isBackingTrack, sound }),
-  //           });
-  //         });
-  //       }),
-  //     );
+    if (audio && lyrics) {
+      onLoadingFinished();
+    }
+  };
 
-  //     for (const audio of audios) {
-  //       if (audio.status === 'fulfilled') {
-  //         audio.value.sound.play();
-  //       }
-  //     }
-  //   };
+  const onAudioLoaded = useCallback(() => {
+    loadedRef.current.audio = true;
 
-  //   loadTracks();
-  // }, [song]);
+    checkLoadedState();
+  }, []);
+
+  const onLyricsLoaded = useCallback(() => {
+    loadedRef.current.lyrics = true;
+
+    checkLoadedState();
+  }, []);
 
   return (
-    <PlayerWrapper onPause={() => {}} onPlay={() => {}}>
-      <p>xxx</p>
+    <PlayerWrapper onPause={onPause} onPlay={onPlay}>
+      <AudioVisualiser tracks={audioTracks} onLoaded={onAudioLoaded} />
+      <LyricsVisualiser url={lyricsUrl} onLoaded={onLyricsLoaded} />
     </PlayerWrapper>
   );
 };

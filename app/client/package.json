@@ -15,7 +15,6 @@
     "butterchurn": "^2.6.7",
     "butterchurn-presets": "^2.4.7",
     "classnames": "^2.5.1",
-    "howler": "^2.2.4",
     "jaraoke-shared": "workspace:*",
     "preact": "^10.27.2",
     "preact-iso": "^2.11.0",
@@ -23,7 +22,6 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",
-    "@types/howler": "^2.2.12",
     "@types/node": "^24.6.0",
     "baseline-browser-mapping": "^2.9.19",
     "typescript": "~5.9.3",

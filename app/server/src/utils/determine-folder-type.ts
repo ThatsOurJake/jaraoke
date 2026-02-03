@@ -1,12 +1,14 @@
 import fs from 'node:fs';
-
+import { extname } from 'node:path';
 import { IGNORED_FILES } from '../constants';
+import { findSupportedVideo, SUPPORTED_VIDEO_TYPES } from '../processors/video';
 
 export enum FolderType {
   CDG,
   KARAFUN,
   ULTRA_STAR,
   LRC,
+  VIDEO,
   NOT_SUPPORTED,
 }
 
@@ -42,6 +44,10 @@ export const determineFolderType = (dir: string): FolderType => {
       files.find((x: string) => x.endsWith('flac')))
   ) {
     return FolderType.LRC;
+  }
+
+  if (findSupportedVideo(files)) {
+    return FolderType.VIDEO;
   }
 
   return FolderType.NOT_SUPPORTED;

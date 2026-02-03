@@ -41,8 +41,13 @@ export const SongItem = ({
         alt="placeholder album"
         className="h-12 aspect-square border-2"
       />
-      <div className="grow px-4">
-        <p>{title}</p>
+      <div className="grow px-4 min-w-0">
+        <p
+          className="overflow-hidden text-ellipsis whitespace-nowrap"
+          title={title}
+        >
+          {title}
+        </p>
         <p className="text-sm">
           {artist || 'Unknown'} - {year || 'Unknown'}
         </p>

@@ -28,6 +28,7 @@ export const installLocation = (() => {
 export const INFO_FILE_NAME = 'jaraoke.json';
 export const LYRICS_FILE_NAME = 'lyrics.ass';
 export const CDG_COMBINED_FILE_NAME = 'track.mp4';
+export const VIDEO_FILE_NAME = 'video.mp4';
 export const BG_VISUALS_FILE_NAME = 'bg.mp4';
 
 export const SETTINGS_FILE_LOC = path.join(installLocation, 'settings.ini');

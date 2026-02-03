@@ -6,12 +6,12 @@ import type { KaraokeEvent } from '../../events/karaoke-event';
 import { constructFileUrl } from '../../utils/construct-file-url';
 import { PlayerWrapper } from './wrapper';
 
-interface CDGPlayerProps {
+interface VideoPlayerProps {
   song: JaraokeCDGFile;
   onLoadingFinished: () => void;
 }
 
-export const CDGPlayer = ({ song, onLoadingFinished }: CDGPlayerProps) => {
+export const VideoPlayer = ({ song, onLoadingFinished }: VideoPlayerProps) => {
   const videoUrl = useRef<string>(constructFileUrl(song.id, song.video));
   const videoElement = useRef<HTMLVideoElement>(null);
 

@@ -83,15 +83,18 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
     return 'UNKNOWN';
   };
 
-  const constructTrackName = (trackType: kfnTrackTypes, kfnTrackName: string) => {
+  const constructTrackName = (
+    trackType: kfnTrackTypes,
+    kfnTrackName: string,
+  ) => {
     if (trackType === 'BACKING_VOCALS') {
       return 'Backing Vocals';
     }
-    
+
     if (trackType === 'LEAD' && kfnTrackName.length > 0) {
       return `Lead vocals [${kfnTrackName}]`;
     }
-    
+
     if (trackType === 'LEAD' && !kfnTrackName) {
       return `Lead vocals`;
     }
@@ -127,11 +130,12 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
       };
     });
 
-    const multipleLeads = mappedTracks.filter(x => x.type === 'LEAD').length > 1;
+    const multipleLeads =
+      mappedTracks.filter((x) => x.type === 'LEAD').length > 1;
 
     if (multipleLeads) {
       // Not ideal but this will remove the mixed lead vocal tracks
-      mappedTracks = mappedTracks.filter(x => !x.fileName.includes('mixed'));
+      mappedTracks = mappedTracks.filter((x) => !x.fileName.includes('mixed'));
     }
 
     return [

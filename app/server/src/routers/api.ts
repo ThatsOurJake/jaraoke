@@ -1,34 +1,15 @@
-import { PassThrough } from 'node:stream';
+import fs, { createReadStream } from 'node:fs';
+import path from 'node:path';
+
 import Router from '@koa/router';
 import type { PlayPayload } from 'jaraoke-shared/types';
+import { directories } from '../constants';
 import { store } from '../data/store';
 import { playKaraoke } from '../services/mpv/play-karaoke';
-import { eventEmitter, sendEvent } from '../utils/event-system';
+import { fileExtToMimeTypes } from '../utils/mime-type';
 
 export const apiRouter = new Router({
   prefix: '/api',
-});
-
-apiRouter.get('/events', (ctx) => {
-  const stream = new PassThrough();
-
-  eventEmitter.on('event', (data: string) => stream.write(data));
-
-  sendEvent('connected');
-
-  ctx.request.socket.setTimeout(0);
-  ctx.req.socket.setNoDelay(true);
-  ctx.req.socket.setKeepAlive(true);
-
-  ctx.set({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  });
-
-  ctx.req.on('close', () => stream.end());
-
-  ctx.body = stream;
 });
 
 apiRouter.get('/songs', (ctx) => {
@@ -38,6 +19,53 @@ apiRouter.get('/songs', (ctx) => {
   );
 
   ctx.body = output;
+});
+
+apiRouter.get('/song/:id', (ctx) => {
+  const { id } = ctx.params;
+  const song = store.karaokeFiles.find((x) => x.id === id);
+
+  if (!id || !song) {
+    ctx.status = 404;
+    ctx.body = {
+      errors: ['Song is not found with that that id'],
+    };
+
+    return;
+  }
+
+  ctx.body = song;
+});
+
+apiRouter.get('/song/:id/:fileName', (ctx) => {
+  const { id, fileName } = ctx.params;
+  const song = store.karaokeFiles.find((x) => x.id === id);
+
+  if (!id || !song) {
+    ctx.status = 404;
+    ctx.body = {
+      errors: ['Song is not found with that that id'],
+    };
+
+    return;
+  }
+
+  const songDir = path.join(directories.songs, song.parentDir!);
+  const filePath = path.join(songDir, fileName);
+
+  if (!fs.existsSync(filePath)) {
+    ctx.status = 404;
+    ctx.body = {
+      errors: ['File Path does not exist'],
+    };
+
+    return;
+  }
+
+  const fileExt = path.extname(fileName);
+  const stream = createReadStream(filePath);
+  ctx.headers['content-type'] = fileExtToMimeTypes(fileExt);
+  ctx.body = stream;
 });
 
 apiRouter.post('/play', (ctx) => {
@@ -67,4 +95,12 @@ apiRouter.post('/play', (ctx) => {
   playKaraoke(foundSong, payload.trackVolumes);
 
   ctx.status = 202;
+});
+
+apiRouter.get('/client-settings', (ctx) => {
+  const { settings } = store;
+
+  ctx.body = {
+    player: settings.player,
+  };
 });

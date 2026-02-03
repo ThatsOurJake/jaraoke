@@ -7,8 +7,8 @@ import type {
 } from 'jaraoke-shared/types';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { Loading } from '../components/loading';
-import { CDGPlayer } from '../components/players/cdg';
 import { MainPlayer } from '../components/players/main';
+import { VideoPlayer } from '../components/players/video';
 import { SONG_STORAGE_KEY } from '../constants';
 import { KaraokeEvent } from '../events/karaoke-event';
 
@@ -16,7 +16,7 @@ export const PlayerScreen = () => {
   const [selectedSong, setSelectedSong] = useState<CombinedJaraokeFiles>();
   const [trackVolumes, setTrackVolumes] = useState<VolumeOverride[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [songType, setSongType] = useState<'cdg' | 'other'>();
+  const [songType, setSongType] = useState<'video' | 'other'>();
 
   useEffect(() => {
     const storedSong = localStorage.getItem(SONG_STORAGE_KEY) as string | null;
@@ -36,7 +36,7 @@ export const PlayerScreen = () => {
     const getSong = async () => {
       const res = await fetch(`/api/song/${parsedStoredSong.id}`);
       const data = (await res.json()) as CombinedJaraokeFiles;
-      setSongType(Object.hasOwn(data, 'video') ? 'cdg' : 'other');
+      setSongType(Object.hasOwn(data, 'video') ? 'video' : 'other');
       setSelectedSong(data);
     };
 
@@ -61,8 +61,8 @@ export const PlayerScreen = () => {
           <p className="font-bold text-white my-2">Loading Track</p>
         </div>
       </div>
-      {songType === 'cdg' && (
-        <CDGPlayer
+      {songType === 'video' && (
+        <VideoPlayer
           song={selectedSong as JaraokeCDGFile}
           onLoadingFinished={onPlayerLoaded}
         />

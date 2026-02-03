@@ -5,7 +5,7 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('bootstrap:check-for-individual-files');
 
-const handleKFN = (loc: string) => {
+const moveToOwnDir = (loc: string) => {
   const fileNameWithExt = basename(loc);
   const ext = extname(loc);
   const fileName = fileNameWithExt.replace(ext, '');
@@ -23,7 +23,9 @@ const handleKFN = (loc: string) => {
 };
 
 const handlers: Record<string, (loc: string) => void> = {
-  KFN: handleKFN,
+  KFN: moveToOwnDir,
+  MP4: moveToOwnDir,
+  WEBM: moveToOwnDir,
 };
 
 export const checkForIndividualFiles = () => {

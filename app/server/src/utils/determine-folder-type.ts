@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { extname } from 'node:path';
 import { IGNORED_FILES } from '../constants';
-import { SUPPORTED_VIDEO_TYPES } from '../processors/video';
+import { findSupportedVideo, SUPPORTED_VIDEO_TYPES } from '../processors/video';
 
 export enum FolderType {
   CDG,
@@ -46,12 +46,7 @@ export const determineFolderType = (dir: string): FolderType => {
     return FolderType.LRC;
   }
 
-  if (
-    files.find((x) => {
-      const extName = extname(x).replace('.', '');
-      return SUPPORTED_VIDEO_TYPES.includes(extName.toLowerCase());
-    })
-  ) {
+  if (findSupportedVideo(files)) {
     return FolderType.VIDEO;
   }
 

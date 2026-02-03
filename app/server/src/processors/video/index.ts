@@ -12,17 +12,19 @@ const logger = createLogger('video-processor');
 
 export const SUPPORTED_VIDEO_TYPES = ['mp4', 'webm'];
 
+export const findSupportedVideo = (files: string[]) =>
+  files.find((x) => {
+    const extName = extname(x).replace('.', '');
+    return SUPPORTED_VIDEO_TYPES.includes(extName.toLowerCase());
+  });
+
 export const videoProcessor: Processor = async (
   directory: string,
 ): Promise<void> => {
   logger.info(`Processing: ${directory} as a Video type`);
 
   const files = fs.readdirSync(directory);
-
-  const videoPath = files.find((x) => {
-    const extName = extname(x).replace('.', '');
-    return SUPPORTED_VIDEO_TYPES.includes(extName.toLowerCase());
-  });
+  const videoPath = findSupportedVideo(files);
 
   if (!videoPath) {
     logger.error(

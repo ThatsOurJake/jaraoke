@@ -5,8 +5,7 @@ build({
   outdir: 'dist',
   platform: 'node',
   format: 'cjs',
-  target: 'node24', // or your Node version
-  sourcemap: true,
+  target: 'node24',
   bundle: false,
   logLevel: 'info',
   loader: {

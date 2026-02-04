@@ -1,8 +1,8 @@
 import fs, { createReadStream } from 'node:fs';
 import path from 'node:path';
-
 import Router from '@koa/router';
 import type { PlayPayload } from 'jaraoke-shared/types';
+
 import { directories } from '../constants';
 import { store } from '../data/store';
 import { playKaraoke } from '../services/mpv/play-karaoke';
@@ -63,9 +63,29 @@ apiRouter.get('/song/:id/:fileName', (ctx) => {
   }
 
   const fileExt = path.extname(fileName);
-  const stream = createReadStream(filePath);
-  ctx.headers['content-type'] = fileExtToMimeTypes(fileExt);
-  ctx.body = stream;
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+  const range = ctx.headers.range;
+
+  ctx.set('Accept-Ranges', 'bytes');
+  ctx.set('Content-Type', fileExtToMimeTypes(fileExt));
+
+  if (range) {
+    // Parse range header (e.g., "bytes=0-1023")
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunkSize = end - start + 1;
+
+    ctx.status = 206;
+    ctx.set('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+    ctx.set('Content-Length', chunkSize.toString());
+    ctx.body = createReadStream(filePath, { start, end });
+  } else {
+    // No range requested, send full file
+    ctx.set('Content-Length', fileSize.toString());
+    ctx.body = createReadStream(filePath);
+  }
 });
 
 apiRouter.post('/play', (ctx) => {

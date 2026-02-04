@@ -78,6 +78,9 @@ importers:
       koa-mount:
         specifier: ^4.2.0
         version: 4.2.0
+      koa-range:
+        specifier: ^0.3.0
+        version: 0.3.0
       koa-static:
         specifier: ^5.0.0
         version: 5.0.0
@@ -106,6 +109,9 @@ importers:
       '@types/koa-mount':
         specifier: ^4.0.5
         version: 4.0.5
+      '@types/koa-range':
+        specifier: ^0.3.6
+        version: 0.3.6
       '@types/koa-static':
         specifier: ^4.0.4
         version: 4.0.4
@@ -878,6 +884,9 @@ packages:
   '@types/koa-mount@4.0.5':
     resolution: {integrity: sha512-pV1njJ7r94iqAFzT9D5sGSYKUHFGudCLAnmr4WFli7V5tJf5MAgRQK9leTPJ4gjvgr+hnTf86fZsKoFN358c7w==}
 
+  '@types/koa-range@0.3.6':
+    resolution: {integrity: sha512-sK4bkgYgu2DRgt9v1Md7OLHy12ROQ0L6G+qsWHSWXgOrWOIEdRSbx1i66MIKm7k/gxyUGufeQcIoLjMn/uPnpw==}
+
   '@types/koa-send@4.1.6':
     resolution: {integrity: sha512-vgnNGoOJkx7FrF0Jl6rbK1f8bBecqAchKpXtKuXzqIEdXTDO6dsSTjr+eZ5m7ltSjH4K/E7auNJEQCAd0McUPA==}
 
@@ -1340,6 +1349,10 @@ packages:
     resolution: {integrity: sha512-2iHQc7vbA9qLeVq5gKAYh3m5DOMMlMfIKjW/REPAS18Mf63daCJHHVXY9nbu7ivrnYn5PiPC4CE523Tf5qvjeQ==}
     engines: {node: '>= 7.6.0'}
 
+  koa-range@0.3.0:
+    resolution: {integrity: sha512-Ich3pCz6RhtbajYXRWjIl6O5wtrLs6kE3nkXc9XmaWe+MysJyZO7K4L3oce1Jpg/iMgCbj+5UCiMm/rqVtcDIg==}
+    engines: {node: '>=7'}
+
   koa-send@5.0.1:
     resolution: {integrity: sha512-tmcyQ/wXXuxpDxyNXv5yNNkdAMdFRqwtegBXUaowiQzUKqJehttS0x2j0eOZDQAyloAth5w6wwBImnFzkUz3pQ==}
     engines: {node: '>= 8'}
@@ -1718,6 +1731,9 @@ packages:
   statuses@2.0.2:
     resolution: {integrity: sha512-DvEy55V3DB7uknRo+4iOGT5fP1slR8wQohVdknigZPMpMstaKJQWhwiYBACJE3Ul2pTnATihhBYnRhZQHGBiRw==}
     engines: {node: '>= 0.8'}
+
+  stream-slice@0.1.2:
+    resolution: {integrity: sha512-QzQxpoacatkreL6jsxnVb7X5R/pGw9OUv2qWTYWnmLpg4NdN31snPy/f3TdQE1ZUXaThRvj1Zw4/OGg0ZkaLMA==}
 
   strip-json-comments@5.0.3:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
@@ -2456,6 +2472,10 @@ snapshots:
     dependencies:
       '@types/koa': 3.0.0
 
+  '@types/koa-range@0.3.6':
+    dependencies:
+      '@types/koa': 3.0.0
+
   '@types/koa-send@4.1.6':
     dependencies:
       '@types/koa': 3.0.0
@@ -2951,6 +2971,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  koa-range@0.3.0:
+    dependencies:
+      stream-slice: 0.1.2
+
   koa-send@5.0.1:
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
@@ -3354,6 +3378,8 @@ snapshots:
   statuses@2.0.1: {}
 
   statuses@2.0.2: {}
+
+  stream-slice@0.1.2: {}
 
   strip-json-comments@5.0.3: {}
 

@@ -103,17 +103,19 @@ pub fn run() {
 
             Ok(())
         })
-        .on_before_exit(|app_handle| {
-            // Kill the Node.js process when the app is closing
-            if let Some(node_process) = app_handle.try_state::<NodeProcess>() {
-                if let Ok(mut child_opt) = node_process.0.lock() {
-                    if let Some(mut child) = child_opt.take() {
-                        let _ = child.kill();
-                        let _ = child.wait();
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                // Kill the Node.js process when the app is exiting
+                if let Some(node_process) = app_handle.try_state::<NodeProcess>() {
+                    if let Ok(mut child_opt) = node_process.0.lock() {
+                        if let Some(mut child) = child_opt.take() {
+                            let _ = child.kill();
+                            let _ = child.wait();
+                        }
                     }
                 }
             }
-        })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        });
 }

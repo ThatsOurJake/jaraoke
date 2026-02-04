@@ -10,4 +10,20 @@ export default defineConfig({
       '/api': 'http://localhost:9897',
     },
   },
+  build: {
+    manifest: true,
+    copyPublicDir: false,
+    rollupOptions: {
+      input: '/src/main.tsx',
+      output: {
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+
+          return null;
+        },
+      },
+    },
+  },
 });

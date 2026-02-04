@@ -11,7 +11,9 @@ export const Wrapper = ({ children }: WrapperProps) => (
     </header>
     <div
       className="py-4 overflow-y-scroll h-full w-full bg-cover flex"
-      style={{ backgroundImage: 'url("/OAK41A0.jpg")' }}
+      style={{
+        backgroundImage: `url("${import.meta.env.BASE_URL}OAK41A0.jpg")`,
+      }}
     >
       {children}
     </div>

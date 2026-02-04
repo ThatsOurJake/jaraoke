@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { JaraokeTrack } from 'jaraoke-shared/types';
+import type { JaraokeTrack, KFNTrack } from 'jaraoke-shared/types';
 import { directories, LYRICS_FILE_NAME } from '../../constants';
 import { probeDuration } from '../../services/ffmpeg/probe-duration';
+import { transcodeToMp3 } from '../../services/ffmpeg/transcode-to-mp3';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
 import { createLogger } from '../../utils/logger';
 import { moveFiles } from '../../utils/move-files';
@@ -12,6 +13,20 @@ import { kfnReader } from './kfn-reader';
 import { kfnSongIniReader } from './kfn-song-ini-reader';
 
 const logger = createLogger('kfn-processor');
+
+const checkAndTranscodeTrack = (tracks: KFNTrack[], rootDir: string) => {
+  for (const track of tracks) {
+    if (track.fileName.endsWith('mp3')) {
+      continue;
+    }
+
+    const { fileName } = track;
+    const fullAudioPath = path.join(rootDir, fileName);
+
+    const { filename: newFileName } = transcodeToMp3(fullAudioPath);
+    track.fileName = newFileName;
+  }
+};
 
 export const kfnProcessor: Processor = async (
   directory: string,
@@ -40,6 +55,9 @@ export const kfnProcessor: Processor = async (
 
     const metadata = infoFile.getMetadata();
     const tracks = infoFile.getTracks();
+
+    checkAndTranscodeTrack(tracks, directories.temp);
+
     const lyrics = lyricBuilder.toAss();
     const headers = await reader.getHeader();
 

@@ -1,95 +1,37 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-use std::io::{BufRead, BufReader};
-use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
-use std::thread;
-use std::time::Duration;
 use tauri::Manager;
-use tauri::WebviewUrl;
 
-// State to hold the child process
-struct NodeProcess(Mutex<Option<Child>>);
+mod health_check;
+mod node_process;
+mod window;
+
+use node_process::NodeProcess;
 
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            let handle = app.handle();
+            // Get and validate resource directory
+            let resource_dir = node_process::get_resource_dir()?;
 
-            // Determine resource directory based on build mode
-            let resource_dir = if cfg!(debug_assertions) {
-                // In debug mode, resources are in target/debug/resources
-                std::env::current_exe()
-                    .ok()
-                    .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-                    .map(|p| p.join("resources"))
-                    .ok_or("Failed to get debug resource path")?
-            } else {
-                // In release mode, use Tauri's resource_dir API
-                handle
-                    .path()
-                    .resource_dir()
-                    .map_err(|e| format!("Failed to get resource_dir: {}", e))?
-            };
-
-            let node_path = if cfg!(target_os = "windows") {
-                resource_dir.join("bin/node.exe")
-            } else {
-                resource_dir.join("bin/node")
-            };
-
-            let with_browser = std::env::args().any(|a| a == "--with-browser");
+            // Check if running in server-only mode
+            let server_only = std::env::args().any(|a| a == "--server");
 
             // Spawn the Node.js server process
-            let mut child = Command::new(&node_path)
-                .current_dir(&resource_dir)
-                .env("NODE_ENV", "production")
-                .env("WITH_BROWSER", if with_browser { "true" } else { "false" })
-                .env("FORCE_COLOR", "0")
-                .stdin(Stdio::null())
-                .arg("app/index.js")
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .map_err(|e| format!("Failed to spawn Node.js process: {}", e))?;
-
-            // Capture and forward stdout to terminal
-            if let Some(stdout) = child.stdout.take() {
-                thread::spawn(move || {
-                    let reader = BufReader::new(stdout);
-                    for line in reader.lines().flatten() {
-                        println!("[Node] {}", line);
-                    }
-                });
-            }
-
-            // Capture and forward stderr to terminal
-            if let Some(stderr) = child.stderr.take() {
-                thread::spawn(move || {
-                    let reader = BufReader::new(stderr);
-                    for line in reader.lines().flatten() {
-                        eprintln!("[Node] {}", line);
-                    }
-                });
-            }
+            let child = node_process::spawn_node_server(&resource_dir, server_only)?;
 
             // Store the child process in app state
             app.manage(NodeProcess(Mutex::new(Some(child))));
 
-            // Create webview window if --with-browser flag is present
-            if with_browser {
-                // Wait for the Node.js server to start
-                thread::sleep(Duration::from_secs(2));
+            // Create webview window if not in server-only mode
+            if !server_only {
+                let app_handle = app.handle().clone();
 
-                tauri::WebviewWindow::builder(
-                    app,
-                    "main",
-                    WebviewUrl::External("http://127.0.0.1:9897".parse().unwrap()),
-                )
-                .title("Jaraoke")
-                .inner_size(1200.0, 640.0)
-                .visible(true)
-                .build()
-                .map_err(|e| format!("Failed to build window: {}", e))?;
+                // Show splash screen
+                window::create_splash_window(app, &resource_dir)?;
+
+                // Poll health endpoint and show main window when ready
+                health_check::poll_health_and_show_window(app_handle);
             }
 
             // Enable logging in debug builds

@@ -6,7 +6,8 @@ PLATFORM="darwin-arm64"
 DEBUG_BUILD="true"
 
 BUILD_DIR="tmp-build"
-RESOURCES_DIR="app-wrapper/resources"
+STATIC_DIR="./app-wrapper/static"
+RESOURCES_DIR="./app-wrapper/resources"
 APP_DIR="app"
 
 rm -rf $BUILD_DIR
@@ -35,6 +36,7 @@ NODE_RUNTIME=$(find .cache/node-$NODE_RUNTIME_VERSION-$PLATFORM/bin -name node)
 echo "Copying Node into build"
 mkdir $RESOURCES_DIR/bin
 cp $NODE_RUNTIME $RESOURCES_DIR/bin
+cp -r $STATIC_DIR/. $RESOURCES_DIR
 
 if [[ "$DEBUG_BUILD" == "true" ]]; then
     echo "Debug Build!"

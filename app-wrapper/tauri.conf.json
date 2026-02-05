@@ -27,7 +27,8 @@
     "resources": [
       "resources/app/**/*",
       "resources/node_modules/**/*",
-      "resources/bin/*"
+      "resources/bin/*",
+      "resources/splash.html"
     ]
   }
 }

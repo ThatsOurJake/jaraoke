@@ -124,3 +124,12 @@ apiRouter.get('/client-settings', (ctx) => {
     player: settings.player,
   };
 });
+
+apiRouter.get('/health', (ctx) => {
+  const { karaokeFiles, readyState } = store;
+
+  ctx.body = {
+    ready: readyState.isReady,
+    importedTracks: karaokeFiles.length,
+  };
+});

@@ -11,14 +11,26 @@ use node_process::NodeProcess;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            // Get and validate resource directory
-            let resource_dir = node_process::get_resource_dir()?;
+            // Resolve and validate resources directory
+            let base_resource_dir = app
+                .path()
+                .resource_dir()
+                .map_err(|e| format!("Failed to get resource directory: {}", e))?;
+            
+            let resources_dir = base_resource_dir.join("resources");
+            
+            if !resources_dir.exists() {
+                panic!(
+                    "Resources directory not found at: {}. This is a critical error - the application cannot run without resources.",
+                    resources_dir.display()
+                );
+            }
 
             // Check if running in server-only mode
             let server_only = std::env::args().any(|a| a == "--server");
 
             // Spawn the Node.js server process
-            let child = node_process::spawn_node_server(&resource_dir, server_only)?;
+            let child = node_process::spawn_node_server(&resources_dir, server_only)?;
 
             // Store the child process in app state
             app.manage(NodeProcess(Mutex::new(Some(child))));
@@ -28,7 +40,7 @@ pub fn run() {
                 let app_handle = app.handle().clone();
 
                 // Show splash screen
-                window::create_splash_window(app, &resource_dir)?;
+                window::create_splash_window(app, &resources_dir)?;
 
                 // Poll health endpoint and show main window when ready
                 health_check::poll_health_and_show_window(app_handle);

@@ -1,15 +1,16 @@
 use std::path::PathBuf;
 use tauri::{WebviewUrl, WebviewWindow};
 
-pub fn create_splash_window(app: &tauri::App, resource_dir: &PathBuf) -> Result<(), String> {
-    let splash_path = resource_dir.join("splash.html");
+pub fn create_splash_window(app: &tauri::App, resources_dir: &PathBuf) -> Result<(), String> {
+    // Resolve splash.html path
+    let splash_path = resources_dir.join("splash.html");
 
     // Verify splash.html exists
     if !splash_path.exists() {
-        return Err(format!(
-            "splash.html not found at: {}",
+        panic!(
+            "splash.html not found at: {}. This is a critical error.",
             splash_path.display()
-        ));
+        );
     }
 
     let splash_url = format!("file://{}", splash_path.display());

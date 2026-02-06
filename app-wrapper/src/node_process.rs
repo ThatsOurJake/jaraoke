@@ -6,38 +6,42 @@ use std::thread;
 
 pub struct NodeProcess(pub Mutex<Option<Child>>);
 
-pub fn get_resource_dir() -> Result<PathBuf, String> {
-    let resource_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-        .map(|p| p.join("resources"))
-        .ok_or("Failed to get resource path")?;
-
-    // Verify resources directory exists
-    if !resource_dir.exists() {
-        return Err(format!(
-            "Resources directory not found at: {}",
-            resource_dir.display()
-        ));
-    }
-
-    Ok(resource_dir)
-}
-
-pub fn spawn_node_server(resource_dir: &PathBuf, server_only: bool) -> Result<Child, String> {
-    let node_path = if cfg!(target_os = "windows") {
-        resource_dir.join("bin/node.exe")
+pub fn spawn_node_server(resources_dir: &PathBuf, server_only: bool) -> Result<Child, String> {
+    // Resolve node binary path
+    let node_binary = if cfg!(target_os = "windows") {
+        "bin/node.exe"
     } else {
-        resource_dir.join("bin/node")
+        "bin/node"
     };
 
+    let node_path = resources_dir.join(node_binary);
+
+    // Verify node binary exists
+    if !node_path.exists() {
+        panic!(
+            "Node binary not found at: {}. This is a critical error.",
+            node_path.display()
+        );
+    }
+
+    // Resolve app entry point
+    let app_entry = resources_dir.join("app/index.js");
+
+    // Verify app entry point exists
+    if !app_entry.exists() {
+        panic!(
+            "App entry point not found at: {}. This is a critical error.",
+            app_entry.display()
+        );
+    }
+
     let mut child = Command::new(&node_path)
-        .current_dir(resource_dir)
+        .current_dir(resources_dir)
         .env("NODE_ENV", "production")
         .env("SERVER_ONLY", if server_only { "true" } else { "false" })
         .env("FORCE_COLOR", "0")
         .stdin(Stdio::null())
-        .arg("app/index.js")
+        .arg(&app_entry)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()

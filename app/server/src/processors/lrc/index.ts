@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseFile, selectCover } from 'music-metadata';
 import { directories, LYRICS_FILE_NAME } from '../../constants';
+import { transcodeToMp3 } from '../../services/ffmpeg/transcode-to-mp3';
 import { bufferToBase64 } from '../../utils/image-to-base64';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
 import { createLogger } from '../../utils/logger';
@@ -10,6 +11,18 @@ import type { Processor } from '../processor-map';
 import { lrcLyricBuilder } from './lrc-lyrics-builder';
 
 const logger = createLogger('lrc-processor');
+
+export const checkAndTranscodeTrack = (audioFile: string, rootDir: string) => {
+  if (audioFile.endsWith('mp3')) {
+    return { result: false };
+  }
+
+  const fullAudioPath = path.join(rootDir, audioFile);
+
+  const { filename: newFileName } = transcodeToMp3(fullAudioPath);
+
+  return { result: true, newFileName };
+};
 
 export const lrcProcessor: Processor = async (
   directory: string,
@@ -28,11 +41,17 @@ export const lrcProcessor: Processor = async (
     return;
   }
 
+  const { result: hadToTranscode, newFileName } = checkAndTranscodeTrack(
+    audioFile,
+    directory,
+  );
+  const audioFileName = hadToTranscode && newFileName ? newFileName : audioFile;
+
   const fullLrcPath = path.join(directory, lrcFile);
-  const fullAudioPath = path.join(directory, audioFile);
+  const fullAudioPath = path.join(directory, audioFileName);
 
   const destLRCFile = path.join(directories.temp, lrcFile);
-  const destAudioFile = path.join(directories.temp, audioFile);
+  const destAudioFile = path.join(directories.temp, audioFileName);
 
   fs.cpSync(fullLrcPath, destLRCFile);
   fs.cpSync(fullAudioPath, destAudioFile);
@@ -53,15 +72,16 @@ export const lrcProcessor: Processor = async (
     const infoFileLocation = createJaraokeInfoFile(
       {
         metadata: {
-          title: title || audioFile,
+          title: title || audioFileName,
           artist: artist,
           year: year?.toString(),
           duration: Math.floor(duration || 0),
         },
         tracks: [
           {
-            fileName: audioFile,
+            fileName: audioFileName,
             name: 'main',
+            isToggleable: false,
           },
         ],
         lyrics: LYRICS_FILE_NAME,

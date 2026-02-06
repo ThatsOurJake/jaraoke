@@ -32,7 +32,8 @@ export const SongItem = ({
     id,
   } = song;
 
-  const imgSrc = coverPhoto || PLACEHOLDER_ALBUM_COVER;
+  const imgSrc =
+    coverPhoto || `${import.meta.env.BASE_URL}${PLACEHOLDER_ALBUM_COVER}`;
 
   return (
     <li className={classes} data-id={id} onClick={() => onSongSelected(song)}>

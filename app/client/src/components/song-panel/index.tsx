@@ -7,10 +7,10 @@ import type {
 import { useCallback, useEffect, useRef } from 'preact/hooks';
 import { PLACEHOLDER_ALBUM_COVER, SONG_STORAGE_KEY } from '../../constants';
 import { formatTime } from '../../utils/format-time';
+import { getSettings } from '../../utils/settings';
 import { NormalButton } from '../buttons/normal-btn';
 import { MicrophoneIcon } from '../icons/microphone';
 import { TrackList } from '../track-list';
-import { getSettings } from '../../utils/settings';
 
 interface SongPanelProps {
   selectedSong?: CombinedJaraokeFiles;
@@ -77,7 +77,9 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
     }
   }, [selectedSong]);
 
-  const imgSrc = selectedSong?.coverPhoto || PLACEHOLDER_ALBUM_COVER;
+  const imgSrc =
+    selectedSong?.coverPhoto ||
+    `${import.meta.env.BASE_URL}${PLACEHOLDER_ALBUM_COVER}`;
 
   return (
     <div className="bg-white rounded w-full h-full p-2 flex flex-col border-2 drop-shadow">

@@ -1,3 +1,4 @@
+import { store } from '../data/store';
 import { checkForIndividualFiles } from './check-for-individual-files';
 import { createDirectories } from './create-directories';
 import { processSongs } from './process-songs';
@@ -10,4 +11,6 @@ export const bootstrap = async () => {
   checkForIndividualFiles();
   await processSongs();
   readJaraokeFiles();
+
+  store.setIsReady();
 };

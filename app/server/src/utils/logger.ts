@@ -1,13 +1,16 @@
 import pino from 'pino';
+import { IS_PRODUCTION } from '../constants';
 
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-    },
-  },
+  transport: IS_PRODUCTION
+    ? undefined
+    : {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+        },
+      },
   base: {
     pid: false,
   },

@@ -1,8 +1,13 @@
 import type { CombinedJaraokeFiles, Settings } from 'jaraoke-shared/types';
 
+interface ReadyState {
+  isReady: boolean;
+}
+
 class Store {
   private _settings: Settings | null = null;
   private _karaokeFiles: CombinedJaraokeFiles[] = [];
+  private _readyState: ReadyState = { isReady: false };
 
   public get settings(): Settings {
     if (!this._settings) {
@@ -22,6 +27,14 @@ class Store {
 
   public set karaokeFiles(value: CombinedJaraokeFiles[]) {
     this._karaokeFiles = value;
+  }
+
+  public get readyState(): ReadyState {
+    return this._readyState;
+  }
+
+  public setIsReady() {
+    this._readyState.isReady = true;
   }
 }
 

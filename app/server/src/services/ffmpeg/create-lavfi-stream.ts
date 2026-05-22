@@ -12,6 +12,17 @@ import { rng } from '../../utils/rng';
 
 const logger = createLogger('create-lavfi-stream');
 
+const logFfmpegErrorOutput = (output: string) => {
+  const lines = output
+    .split(/[\r\n]+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (const line of lines) {
+    logger.error(line);
+  }
+};
+
 // TODO: Toggle from settings for backgrounds
 
 const getBackgroundAsset = (): string | null => {
@@ -31,9 +42,13 @@ export const createLavfiStream = (
   jaraokeFile: JaraokeFile,
   volumeOverrides: VolumeOverride[],
 ) => {
-  const { tracks, lyrics, parentDir } = jaraokeFile;
-  const songDir = path.join(directories.songs, parentDir!);
-  const lyricsPath = path.join(songDir, lyrics);
+  const { tracks, parentDir } = jaraokeFile;
+
+  if (!parentDir) {
+    throw new Error('Cannot create lavfi stream without a parent directory');
+  }
+
+  const songDir = path.join(directories.songs, parentDir);
   const video = getBackgroundAsset();
 
   const audioComplexes = tracks.map((t: JaraokeTrack, index: number) => {
@@ -76,15 +91,19 @@ export const createLavfiStream = (
     videoInputLabel = `${lavifiIndex}:v`;
   }
 
-  const filterComplexArg = `${audioComplexes.join('; ')};${audioComplexesInput.join('')}amix=inputs=${tracks.length}[aout]; [${videoInputLabel}]subtitles=${lyricsPath}[vout]`;
+  const filterComplexArg = `${audioComplexes.join('; ')};${audioComplexesInput.join('')}amix=inputs=${tracks.length}[aout]`;
 
   const args = [
+    '-hide_banner',
+    '-nostats',
+    '-loglevel',
+    'error',
     ...tracks.flatMap((x) => ['-i', path.join(songDir, x.fileName)]),
     ...videoInputArgs,
     '-filter_complex',
     filterComplexArg,
     '-map',
-    '[vout]',
+    `${videoInputLabel}`,
     '-map',
     '[aout]',
     '-c:v',
@@ -97,7 +116,32 @@ export const createLavfiStream = (
     '-',
   ];
 
-  return spawn('ffmpeg', args, {
+  logger.debug(`Spawning ffmpeg: ffmpeg ${args.join(' ')}`);
+
+  const ffmpegProcess = spawn('ffmpeg', args, {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+
+  ffmpegProcess.on('error', (error) => {
+    logger.error(`ffmpeg failed to start: ${error.message}`);
+  });
+
+  ffmpegProcess.stderr.on('data', (data) => {
+    logFfmpegErrorOutput(data.toString());
+  });
+
+  ffmpegProcess.on('close', (code, signal) => {
+    if (code && signal !== 'SIGTERM') {
+      logger.error(
+        `ffmpeg lavfi stream exited with code=${code} signal=${signal ?? 'null'}`,
+      );
+      return;
+    }
+
+    logger.debug(
+      `ffmpeg lavfi stream closed with code=${code ?? 'null'} signal=${signal ?? 'null'}`,
+    );
+  });
+
+  return ffmpegProcess;
 };

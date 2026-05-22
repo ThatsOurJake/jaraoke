@@ -83,6 +83,10 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
 
   const isJaraokeFile = (song: CombinedJaraokeFiles): song is JaraokeFile =>
     'tracks' in song;
+  const isDuet =
+    selectedSong &&
+    isJaraokeFile(selectedSong) &&
+    selectedSong.lyricsType === 'duet';
 
   return (
     <div className="bg-white rounded w-full h-full p-2 flex flex-col border-2 drop-shadow">
@@ -108,9 +112,7 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
           <div className="grow flex flex-col p-2">
             <p className="text-center">
               {metadata?.title}
-              {isJaraokeFile(selectedSong) && selectedSong.isDuet && (
-                <span className="mx-1">[Duet]</span>
-              )}
+              {isDuet && <span className="mx-1">[Duet]</span>}
             </p>
             <p className="text-center text-sm">
               {metadata?.artist || 'Unknown'} - {metadata?.year || 'Unknown'}

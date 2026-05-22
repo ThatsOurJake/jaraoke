@@ -37,6 +37,7 @@ export const SongItem = ({
 
   const isJaraokeFile = (song: CombinedJaraokeFiles): song is JaraokeFile =>
     'tracks' in song;
+  const isDuet = isJaraokeFile(song) && song.lyricsType === 'duet';
 
   return (
     <li className={classes} data-id={id} onClick={() => onSongSelected(song)}>
@@ -51,9 +52,7 @@ export const SongItem = ({
           title={title}
         >
           {title}
-          {isJaraokeFile(song) && song.isDuet && (
-            <span className="mx-1">[Duet]</span>
-          )}
+          {isDuet && <span className="mx-1">[Duet]</span>}
         </p>
         <p className="text-sm">
           {artist || 'Unknown'} - {year || 'Unknown'}

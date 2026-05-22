@@ -2,11 +2,39 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseIni } from 'ini';
 
-import type { KFNTrack, kfnTrackTypes } from 'jaraoke-shared/types';
+import type {
+  JaraokeLyricsType,
+  KFNTrack,
+  kfnTrackTypes,
+} from 'jaraoke-shared/types';
 
 export type KfnLyricsEffect = Record<string, string>;
+export interface KfnLyricsEffectDetails {
+  effect: KfnLyricsEffect;
+  lyricLineCount: number;
+  hasCaption: boolean;
+}
 
 type ParsedIni = Record<string, KfnLyricsEffect>;
+
+const getMeaningfulTextLines = (effect: KfnLyricsEffect) => {
+  return Object.entries(effect).reduce((acc: string[], [key, value]) => {
+    if (!/text\d/.test(key)) {
+      return acc;
+    }
+
+    const trimmedValue = value.trim();
+    const visibleValue = trimmedValue.replace(/[_/\s]+/g, '');
+
+    if (!visibleValue) {
+      return acc;
+    }
+
+    acc.push(trimmedValue);
+
+    return acc;
+  }, []);
+};
 
 interface SongIniReaderOpts {
   kfnDirectory: string;
@@ -61,6 +89,47 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
 
   const findLyricsEffect = () => {
     return findLyricsEffects()[0] || null;
+  };
+
+  const describeLyricsEffects = (): KfnLyricsEffectDetails[] => {
+    return findLyricsEffects().map((effect) => {
+      const textLines = getMeaningfulTextLines(effect);
+      const caption = effect.caption?.trim() || '';
+
+      return {
+        effect,
+        lyricLineCount: textLines.length,
+        hasCaption: caption.length > 0,
+      };
+    });
+  };
+
+  const getLyricsType = (): JaraokeLyricsType => {
+    const effects = describeLyricsEffects();
+
+    if (effects.length <= 1) {
+      return 'single';
+    }
+
+    const sortedByCoverage = [...effects].sort(
+      (a, b) => b.lyricLineCount - a.lyricLineCount,
+    );
+    const primaryEffect = sortedByCoverage[0];
+    const secondaryEffect = sortedByCoverage[1];
+    const allHaveCaptions = effects.every((effect) => effect.hasCaption);
+    const secondaryCoverageRatio =
+      secondaryEffect.lyricLineCount /
+      Math.max(1, primaryEffect.lyricLineCount);
+
+    if (
+      effects.length === 2 &&
+      secondaryCoverageRatio <= 0.5 &&
+      !allHaveCaptions
+    ) {
+      return 'translation';
+    }
+
+    return 'duet';
   };
 
   const getMetadata = () => {
@@ -157,8 +226,10 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
   };
 
   return {
+    describeLyricsEffects,
     findLyricsEffects,
     findLyricsEffect,
+    getLyricsType,
     getMetadata,
     getTracks,
   };

@@ -60,7 +60,7 @@ export const kfnProcessor: Processor = async (
     }
 
     const tracks = infoFile.getTracks();
-    const isDuet = infoFile.findLyricsEffects().length > 1;
+    const lyricsType = infoFile.getLyricsType();
 
     checkAndTranscodeTrack(tracks, directories.temp);
 
@@ -100,7 +100,7 @@ export const kfnProcessor: Processor = async (
         },
         tracks: mappedTracks,
         lyrics: LYRICS_FILE_NAME,
-        isDuet,
+        lyricsType,
       },
       directories.temp,
     );

@@ -115,6 +115,7 @@ export interface LyricBuilderAssOptions {
   highlightColours?: {
     personOne?: string;
     personTwo?: string;
+    translation?: string;
   };
   fontSize?: {
     lyrics?: number;
@@ -160,6 +161,8 @@ export interface JaraokeTrack {
   isToggleable: boolean;
 }
 
+export type JaraokeLyricsType = 'single' | 'duet' | 'translation';
+
 export interface JaraokeFileMeta {
   title: string;
   artist?: string;
@@ -178,7 +181,7 @@ interface BaseJarokeFIle {
 export interface JaraokeFile extends BaseJarokeFIle {
   tracks: JaraokeTrack[];
   lyrics: string;
-  isDuet?: boolean;
+  lyricsType?: JaraokeLyricsType;
 }
 
 export interface JaraokeCDGFile extends BaseJarokeFIle {

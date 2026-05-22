@@ -1,5 +1,4 @@
 import type {
-  AssLine,
   LyricBuilderAssOptions,
   WithRequired,
 } from 'jaraoke-shared/types';
@@ -13,6 +12,16 @@ import {
   renderAssChunk,
   resolveAssFontSizes,
 } from '../shared';
+import {
+  buildTranslationEventsForPage,
+  getTranslationBaseY,
+  type KfnLyricsSection,
+  normalizeSingerName,
+  normalizeTranslationEvents,
+  orderEffectDetails,
+  resolveSectionLineCount,
+  type TimedAssLine,
+} from './kfn-lyrics-builder-helpers';
 import {
   type KfnLyricsEffect,
   kfnSongIniReader,
@@ -33,23 +42,7 @@ interface LineTiming extends Line {
   timing: number;
 }
 
-interface TimedAssLine extends AssLine {
-  activeStart: number;
-  activeEnd: number;
-}
-
-interface KfnLyricsSection {
-  caption?: string;
-  highlightColour: string;
-  lines: TimedAssLine[];
-  positions: number[];
-  labelY: number;
-}
-
 const PAGE_RESET_GAP_MULTIPLIER = 2;
-
-const normalizeSingerName = (value?: string) =>
-  value?.trim().toLowerCase() || '';
 
 export const kfnLyricsBuilder = (
   opts:
@@ -267,6 +260,7 @@ export const kfnLyricsBuilder = (
     const {
       personOne: personOneHighlight = '&H00FF00&',
       personTwo: personTwoHighlight = '&H00A5FF&',
+      translation: translationHighlight = '&H00909090&',
     } = highlightColours || {};
     const { lyrics: lyricFontSize, subtitle: subtitleFontSize } =
       resolveAssFontSizes(fontSize);
@@ -276,7 +270,9 @@ export const kfnLyricsBuilder = (
       screen,
     });
 
-    const syncedEffects = iniReader.findLyricsEffects();
+    const lyricsType = iniReader.getLyricsType();
+    const describedEffects = iniReader.describeLyricsEffects();
+    const syncedEffects = describedEffects.map((details) => details.effect);
 
     if (syncedEffects.length === 0) {
       throw new Error('Could not find lyrics effect in Song.ini');
@@ -285,19 +281,16 @@ export const kfnLyricsBuilder = (
     const assTemplate = createAssTemplate({ font, fontSize: lyricFontSize });
 
     const assLines: string[] = [];
-    const isDuet = syncedEffects.length > 1;
     const pageResetGap = paddingTiming * PAGE_RESET_GAP_MULTIPLIER;
     const mainSinger = normalizeSingerName(iniReader.getMetadata()?.artist);
-    const orderedEffects = isDuet
-      ? [...syncedEffects].sort(
-          (a, b) =>
-            Number(normalizeSingerName(b.caption) === mainSinger) -
-              Number(normalizeSingerName(a.caption) === mainSinger) ||
-            parseInt(a.offsety || '0', 10) - parseInt(b.offsety || '0', 10),
-        )
-      : syncedEffects;
+    const orderedEffects = orderEffectDetails({
+      describedEffects,
+      lyricsType,
+      mainSinger,
+    });
     const sections = orderedEffects.reduce(
-      (acc: KfnLyricsSection[], effect, index) => {
+      (acc: KfnLyricsSection[], effectDetails, index) => {
+        const { effect } = effectDetails;
         const lyrics = constructLyrics(effect);
         const lines = buildLines(lyrics, paddingTiming);
 
@@ -305,7 +298,7 @@ export const kfnLyricsBuilder = (
           return acc;
         }
 
-        if (!isDuet) {
+        if (lyricsType !== 'duet') {
           acc.push({
             caption: effect.caption,
             highlightColour: personOneHighlight,
@@ -317,12 +310,7 @@ export const kfnLyricsBuilder = (
           return acc;
         }
 
-        const requestedLineCount = parseInt(effect.linecount || '', 10);
-        const fallbackLineCount = Math.max(1, Math.ceil(maxLinesOnScreen / 2));
-        const lineCount =
-          Number.isFinite(requestedLineCount) && requestedLineCount > 0
-            ? requestedLineCount
-            : fallbackLineCount;
+        const lineCount = resolveSectionLineCount(effect, maxLinesOnScreen);
         const sectionLayout = createSectionLayout(
           index,
           orderedEffects.length,
@@ -374,7 +362,7 @@ export const kfnLyricsBuilder = (
       assLines.push(formattedLine);
     }
 
-    if (isDuet) {
+    if (lyricsType === 'duet') {
       for (const section of sections) {
         if (section.caption) {
           const captionPrefix = `{\\fs${subtitleFontSize}\\b1\\1c${section.highlightColour}\\pos(${centerX},${section.labelY})}`;
@@ -391,16 +379,30 @@ export const kfnLyricsBuilder = (
       }
     }
 
-    for (const section of sections) {
+    const translationBlockGap = Math.max(
+      6,
+      Math.round(subtitleFontSize * 0.35),
+    );
+    const translationLeadIn = Math.min(
+      paddingTiming,
+      Math.max(12, Math.round(paddingTiming * 0.25)),
+    );
+    const translationBaseY = getTranslationBaseY({
+      firstVisiblePos: positions[0],
+      lyricFontSize,
+      subtitleFontSize,
+      translationBlockGap,
+    });
+
+    const renderSectionPages = (section: KfnLyricsSection) => {
       const highlightTemplate = `\\r\\1c${section.highlightColour}`;
-      const pages = paginateAssLines({
+
+      return paginateAssLines({
         lines: section.lines,
         pageSize: section.positions.length,
         shouldStartNewPage: (previousLine, nextLine) =>
           nextLine.activeStart - previousLine.activeEnd > pageResetGap,
-      });
-
-      for (const chunk of pages) {
+      }).map((chunk) => {
         assLines.push(
           ...renderAssChunk({
             chunk,
@@ -417,6 +419,39 @@ export const kfnLyricsBuilder = (
               `{\\k${paddingTiming}${highlightTemplate}\\pos(${centerX},${pos})}`,
           }),
         );
+
+        return chunk;
+      });
+    };
+
+    if (lyricsType === 'translation') {
+      const [primarySection, ...translationSections] = sections;
+      const primaryPages = renderSectionPages(primarySection);
+      const translationEvents = primaryPages.flatMap((chunk) =>
+        buildTranslationEventsForPage({
+          chunk,
+          translationSections,
+          translationLeadIn,
+        }),
+      );
+      const normalizedTranslationEvents =
+        normalizeTranslationEvents(translationEvents);
+      const translationPrefix = `{\\fs${subtitleFontSize}\\1c${translationHighlight}\\pos(${centerX},${translationBaseY})}`;
+
+      for (const event of normalizedTranslationEvents) {
+        assLines.push(
+          createDialogueLine({
+            start: event.start,
+            end: event.end,
+            lyric: event.lyric,
+            prefix: translationPrefix,
+            formatTiming: convertTiming,
+          }),
+        );
+      }
+    } else {
+      for (const section of sections) {
+        renderSectionPages(section);
       }
     }
 

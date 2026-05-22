@@ -95,7 +95,6 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
           ...renderAssChunk({
             chunk,
             positions,
-            centerX,
             formatTiming: convertTiming,
             window: {
               start: currentLine.displayStart,
@@ -113,7 +112,6 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
         ...renderAssChunk({
           chunk,
           positions,
-          centerX,
           formatTiming: convertTiming,
           window: {
             start: currentLine.activeStart,

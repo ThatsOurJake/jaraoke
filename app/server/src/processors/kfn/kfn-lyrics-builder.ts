@@ -240,7 +240,6 @@ export const kfnLyricsBuilder = (
         ...renderAssChunk({
           chunk,
           positions,
-          centerX,
           formatTiming: convertTiming,
           getWindow: (line) =>
             line

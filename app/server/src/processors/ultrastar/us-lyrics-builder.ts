@@ -121,7 +121,6 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
         ...renderAssChunk({
           chunk,
           positions,
-          centerX,
           formatTiming: convertTiming,
           getWindow: (line) =>
             line

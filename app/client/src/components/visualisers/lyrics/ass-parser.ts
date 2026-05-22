@@ -177,6 +177,14 @@ function parseTag(tagContent: string): ASSTag | null {
     };
   }
 
+  // Handle \fs tag (font size override)
+  if (tagContent.match(/^fs\d+(?:\.\d+)?$/)) {
+    return {
+      type: 'fs',
+      value: parseFloat(tagContent.substring(2)),
+    };
+  }
+
   // Handle \r tag (reset to style)
   if (tagContent.match(/^r$/)) {
     return {
@@ -291,9 +299,12 @@ function parseDialogueText(text: string): {
 
   let preRenderDelay = 0;
   if (syllables.length > 0 && syllables[0].text.trim().length === 0) {
-    const firstSyllable = syllables.shift()!;
-    globalTags.push(...firstSyllable.tags);
-    preRenderDelay = firstSyllable.duration;
+    const firstSyllable = syllables.shift();
+
+    if (firstSyllable) {
+      globalTags.push(...firstSyllable.tags);
+      preRenderDelay = firstSyllable.duration;
+    }
   }
 
   return { syllables, globalTags, preRenderDelay };

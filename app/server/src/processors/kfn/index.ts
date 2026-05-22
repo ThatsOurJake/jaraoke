@@ -54,7 +54,13 @@ export const kfnProcessor: Processor = async (
     const lyricBuilder = kfnLyricsBuilder({ songIniInstance: infoFile });
 
     const metadata = infoFile.getMetadata();
+
+    if (!metadata) {
+      throw new Error('Could not find metadata in Song.ini');
+    }
+
     const tracks = infoFile.getTracks();
+    const isDuet = infoFile.findLyricsEffects().length > 1;
 
     checkAndTranscodeTrack(tracks, directories.temp);
 
@@ -87,13 +93,14 @@ export const kfnProcessor: Processor = async (
     const infoFileLocation = createJaraokeInfoFile(
       {
         metadata: {
-          title: metadata?.title,
-          artist: metadata?.artist,
-          year: metadata?.year,
+          title: metadata.title,
+          artist: metadata.artist,
+          year: metadata.year,
           duration: Math.floor(duration || 0),
         },
         tracks: mappedTracks,
         lyrics: LYRICS_FILE_NAME,
+        isDuet,
       },
       directories.temp,
     );

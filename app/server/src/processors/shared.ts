@@ -56,6 +56,24 @@ interface AssLayoutOptions {
   screen?: LyricBuilderAssOptions['screen'];
 }
 
+interface ResolvedAssFontSizes {
+  lyrics: number;
+  subtitle: number;
+}
+
+export const resolveAssFontSizes = (
+  fontSize?: LyricBuilderAssOptions['fontSize'],
+): ResolvedAssFontSizes => {
+  const lyrics = fontSize?.lyrics ?? 48;
+  const subtitle =
+    fontSize?.subtitle ?? Math.max(20, Math.round(lyrics * 0.55));
+
+  return {
+    lyrics,
+    subtitle,
+  };
+};
+
 export const createAssLayout = ({
   fontSize,
   maxLinesOnScreen,

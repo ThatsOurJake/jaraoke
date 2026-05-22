@@ -10,8 +10,10 @@ import {
   createAssTimingFormatter,
   createDialogueLine,
   renderAssChunk,
+  resolveAssFontSizes,
 } from '../shared';
 import {
+  type KfnLyricsEffect,
   kfnSongIniReader,
   type SongIniReaderInstance,
 } from './kfn-song-ini-reader';
@@ -29,6 +31,17 @@ interface Line {
 interface LineTiming extends Line {
   timing: number;
 }
+
+interface KfnLyricsSection {
+  caption?: string;
+  highlightColour: string;
+  lines: AssLine[];
+  positions: number[];
+  labelY: number;
+}
+
+const normalizeSingerName = (value?: string) =>
+  value?.trim().toLowerCase() || '';
 
 export const kfnLyricsBuilder = (
   opts:
@@ -48,7 +61,7 @@ export const kfnLyricsBuilder = (
 
   const convertTiming = createAssTimingFormatter(100);
 
-  const getTimings = (eff: Record<string, string>) => {
+  const getTimings = (eff: KfnLyricsEffect) => {
     return Object.entries(eff)
       .reduce((acc: number[], current) => {
         const [key, value] = current;
@@ -64,7 +77,7 @@ export const kfnLyricsBuilder = (
       .filter((x) => x);
   };
 
-  const getLines = (eff: Record<string, string>) => {
+  const getLines = (eff: KfnLyricsEffect) => {
     return Object.entries(eff).reduce((acc: Line[], current) => {
       const [key, value] = current;
       const isTextLine = /text\d/.test(key);
@@ -135,13 +148,7 @@ export const kfnLyricsBuilder = (
 
   // TODO there are words with multiple "_" that need to be handled
 
-  const constructLyrics = () => {
-    const eff = iniReader.findLyricsEffect();
-
-    if (!eff) {
-      throw new Error('Could not find lyrics effect in Song.ini');
-    }
-
+  const constructLyrics = (eff: KfnLyricsEffect) => {
     const timings = getTimings(eff);
     const lines = getLines(eff);
     const words = getWords(lines);
@@ -155,27 +162,11 @@ export const kfnLyricsBuilder = (
     return groupLyrics(lyrics);
   };
 
-  const toAss = (options?: LyricBuilderAssOptions) => {
-    const {
-      paddingTiming = 100,
-      font = 'IMPACT',
-      fontSize = 48,
-      highlightColour = '&H00FF00&',
-      maxLinesOnScreen = 4,
-      screen,
-    } = options || {};
-    const { height, centerX, positions } = createAssLayout({
-      fontSize,
-      maxLinesOnScreen,
-      screen,
-    });
-
-    const lyrics = constructLyrics();
-    const assTemplate = createAssTemplate({ font, fontSize });
-
-    const assLines: string[] = [];
+  const buildLines = (
+    lyrics: Map<string, LineTiming[]>,
+    paddingTiming: number,
+  ): AssLine[] => {
     const lines: AssLine[] = [];
-    const highlightTemplate = `\\r\\1c${highlightColour}`;
 
     for (const element of lyrics.values()) {
       const startingTiming = element[0].timing;
@@ -212,15 +203,142 @@ export const kfnLyricsBuilder = (
       });
     }
 
+    return lines;
+  };
+
+  const createSectionLayout = (
+    sectionIndex: number,
+    sectionCount: number,
+    lineCount: number,
+    height: number,
+    fontSize: number,
+  ) => {
+    const safeLineCount = Math.max(1, lineCount);
+    const sectionHeight = height / sectionCount;
+    const sectionTop = sectionIndex * sectionHeight;
+    const initialStartPos = sectionTop + sectionHeight / (safeLineCount + 1);
+    const positions = Array.from(
+      { length: safeLineCount },
+      (_, index) => initialStartPos + fontSize * index,
+    );
+    const labelY = Math.max(
+      sectionTop + fontSize * 0.75,
+      positions[0] - fontSize,
+    );
+
+    return {
+      positions,
+      labelY,
+    };
+  };
+
+  const toAss = (options?: LyricBuilderAssOptions) => {
+    const {
+      paddingTiming = 100,
+      font = 'IMPACT',
+      fontSize,
+      highlightColours,
+      maxLinesOnScreen = 4,
+      screen,
+    } = options || {};
+    const {
+      personOne: personOneHighlight = '&H00FF00&',
+      personTwo: personTwoHighlight = '&H00A5FF&',
+    } = highlightColours || {};
+    const { lyrics: lyricFontSize, subtitle: subtitleFontSize } =
+      resolveAssFontSizes(fontSize);
+    const { height, centerX, positions } = createAssLayout({
+      fontSize: lyricFontSize,
+      maxLinesOnScreen,
+      screen,
+    });
+
+    const syncedEffects = iniReader.findLyricsEffects();
+
+    if (syncedEffects.length === 0) {
+      throw new Error('Could not find lyrics effect in Song.ini');
+    }
+
+    const assTemplate = createAssTemplate({ font, fontSize: lyricFontSize });
+
+    const assLines: string[] = [];
+    const isDuet = syncedEffects.length > 1;
+    const mainSinger = normalizeSingerName(iniReader.getMetadata()?.artist);
+    const orderedEffects = isDuet
+      ? [...syncedEffects].sort(
+          (a, b) =>
+            Number(normalizeSingerName(b.caption) === mainSinger) -
+              Number(normalizeSingerName(a.caption) === mainSinger) ||
+            parseInt(a.offsety || '0', 10) - parseInt(b.offsety || '0', 10),
+        )
+      : syncedEffects;
+    const sections = orderedEffects.reduce(
+      (acc: KfnLyricsSection[], effect, index) => {
+        const lyrics = constructLyrics(effect);
+        const lines = buildLines(lyrics, paddingTiming);
+
+        if (lines.length === 0) {
+          return acc;
+        }
+
+        if (!isDuet) {
+          acc.push({
+            caption: effect.caption,
+            highlightColour: personOneHighlight,
+            lines,
+            positions,
+            labelY: Math.max(lyricFontSize, positions[0] - lyricFontSize),
+          });
+
+          return acc;
+        }
+
+        const requestedLineCount = parseInt(effect.linecount || '', 10);
+        const fallbackLineCount = Math.max(1, Math.ceil(maxLinesOnScreen / 2));
+        const lineCount =
+          Number.isFinite(requestedLineCount) && requestedLineCount > 0
+            ? requestedLineCount
+            : fallbackLineCount;
+        const sectionLayout = createSectionLayout(
+          index,
+          orderedEffects.length,
+          lineCount,
+          height,
+          lyricFontSize,
+        );
+
+        acc.push({
+          caption: effect.caption,
+          highlightColour:
+            index === 0 ? personOneHighlight : personTwoHighlight,
+          lines,
+          positions: sectionLayout.positions,
+          labelY: sectionLayout.labelY,
+        });
+
+        return acc;
+      },
+      [],
+    );
+
+    if (sections.length === 0) {
+      throw new Error('Could not construct lyrics from Song.ini');
+    }
+
+    const allLines = sections.flatMap((section) => section.lines);
+    const earliestLineStart = Math.min(...allLines.map((line) => line.start));
+    const latestLineEnd = Math.max(...allLines.map((line) => line.end));
+    const countdownY = height / 2;
+
     const countdownLines = constructCountdown({
-      firstTiming: lines[0].start + paddingTiming,
+      firstTiming: earliestLineStart + paddingTiming,
       startingNumber: 3,
       paddingTiming,
       unitsPerSecond: 100,
     });
 
     for (const line of countdownLines) {
-      const prefixTemplate = `{\\pos(${centerX},${height / 2})}`;
+      const prefixTemplate = `{\\pos(${centerX},${countdownY})}`;
       const formattedLine = createDialogueLine({
         start: line.start,
         end: line.end,
@@ -232,26 +350,47 @@ export const kfnLyricsBuilder = (
       assLines.push(formattedLine);
     }
 
-    for (let i = 0; i < lines.length; i += maxLinesOnScreen) {
-      const chunk = lines.slice(i, i + maxLinesOnScreen);
+    if (isDuet) {
+      for (const section of sections) {
+        if (section.caption) {
+          const captionPrefix = `{\\fs${subtitleFontSize}\\b1\\1c${section.highlightColour}\\pos(${centerX},${section.labelY})}`;
+          assLines.push(
+            createDialogueLine({
+              start: earliestLineStart,
+              end: latestLineEnd,
+              lyric: section.caption,
+              prefix: captionPrefix,
+              formatTiming: convertTiming,
+            }),
+          );
+        }
+      }
+    }
 
-      // TODO: If the timings between the next end and start are far away we can reset back to positions[0]
-      assLines.push(
-        ...renderAssChunk({
-          chunk,
-          positions,
-          formatTiming: convertTiming,
-          getWindow: (line) =>
-            line
-              ? {
-                  start: line.start,
-                  end: line.end,
-                }
-              : null,
-          createPrefix: ({ pos }) =>
-            `{\\k${paddingTiming}${highlightTemplate}\\pos(${centerX},${pos})}`,
-        }),
-      );
+    for (const section of sections) {
+      const highlightTemplate = `\\r\\1c${section.highlightColour}`;
+
+      for (let i = 0; i < section.lines.length; i += section.positions.length) {
+        const chunk = section.lines.slice(i, i + section.positions.length);
+
+        // TODO: If the timings between the next end and start are far away we can reset back to positions[0]
+        assLines.push(
+          ...renderAssChunk({
+            chunk,
+            positions: section.positions,
+            formatTiming: convertTiming,
+            getWindow: (line) =>
+              line
+                ? {
+                    start: line.start,
+                    end: line.end,
+                  }
+                : null,
+            createPrefix: ({ pos }) =>
+              `{\\k${paddingTiming}${highlightTemplate}\\pos(${centerX},${pos})}`,
+          }),
+        );
+      }
     }
 
     return `${assTemplate}${assLines.join('\n')}`;

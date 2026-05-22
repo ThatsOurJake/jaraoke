@@ -11,6 +11,7 @@ import {
   createAssTimingFormatter,
   createDialogueLine,
   renderAssChunk,
+  resolveAssFontSizes,
 } from '../shared';
 
 export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
@@ -40,23 +41,26 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
     const {
       paddingTiming = 100,
       font = 'IMPACT',
-      fontSize = 48,
-      highlightColour = '&H00FF00&',
+      fontSize,
+      highlightColours,
       maxLinesOnScreen = 4,
       screen,
     } = options || {};
+    const { personOne: personOneHighlight = '&H00FF00&' } =
+      highlightColours || {};
+    const { lyrics: lyricFontSize } = resolveAssFontSizes(fontSize);
     const { height, centerX, positions } = createAssLayout({
-      fontSize,
+      fontSize: lyricFontSize,
       maxLinesOnScreen,
       screen,
     });
 
     const noteGroups = constructNotes();
-    const assTemplate = createAssTemplate({ font, fontSize });
+    const assTemplate = createAssTemplate({ font, fontSize: lyricFontSize });
 
     const assLines: string[] = [];
     const lines: AssLine[] = [];
-    const highlightTemplate = `\\r\\1c${highlightColour}`;
+    const highlightTemplate = `\\r\\1c${personOneHighlight}`;
 
     for (const group of noteGroups) {
       const startingTiming = group[0].start;

@@ -6,6 +6,7 @@ import {
   createAssTemplate,
   createAssTimingFormatter,
   renderAssChunk,
+  resolveAssFontSizes,
 } from '../shared';
 
 interface LyricBuilderOptions {
@@ -50,26 +51,29 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
   const toAss = (
     options?: Pick<
       LyricBuilderAssOptions,
-      'font' | 'fontSize' | 'highlightColour' | 'screen'
+      'font' | 'fontSize' | 'highlightColours' | 'screen'
     >,
   ) => {
     const {
       font = 'IMPACT',
-      fontSize = 48,
-      highlightColour = '&H00FF00&',
+      fontSize,
+      highlightColours,
       screen,
     } = options || {};
+    const { personOne: personOneHighlight = '&H00FF00&' } =
+      highlightColours || {};
+    const { lyrics: lyricFontSize } = resolveAssFontSizes(fontSize);
 
     const { centerX, positions } = createAssLayout({
-      fontSize,
+      fontSize: lyricFontSize,
       maxLinesOnScreen: 3,
       screen,
     });
-    const assTemplate = createAssTemplate({ font, fontSize });
+    const assTemplate = createAssTemplate({ font, fontSize: lyricFontSize });
 
     const assLines: string[] = [];
     const lines: DisplayLine[] = [];
-    const highlightTemplate = `\\r\\1c${highlightColour}\\b1`;
+    const highlightTemplate = `\\r\\1c${personOneHighlight}\\b1`;
 
     for (let i = 0; i < lyricLines.length; i++) {
       const line = lyricLines[i];

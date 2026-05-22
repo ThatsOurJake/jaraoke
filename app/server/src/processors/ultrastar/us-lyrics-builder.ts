@@ -10,6 +10,7 @@ import {
   createAssTemplate,
   createAssTimingFormatter,
   createDialogueLine,
+  renderAssChunk,
 } from '../shared';
 
 export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
@@ -115,21 +116,24 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
     for (let i = 0; i < lines.length; i += maxLinesOnScreen) {
       const chunk = lines.slice(i, i + maxLinesOnScreen);
 
-      for (let j = 0; j < chunk.length; j++) {
-        const line = chunk[j];
-        const pos = positions[j];
-
-        // TODO: If the timings between the next end and start are far away we can reset back to positions[0]
-        const prefixTemplate = `{\\k${paddingTiming}${highlightTemplate}\\pos(${centerX},${pos})}`;
-        const formattedLine = createDialogueLine({
-          start: line.start,
-          end: line.end,
-          lyric: line.lyric,
-          prefix: prefixTemplate,
+      // TODO: If the timings between the next end and start are far away we can reset back to positions[0]
+      assLines.push(
+        ...renderAssChunk({
+          chunk,
+          positions,
+          centerX,
           formatTiming: convertTiming,
-        });
-        assLines.push(formattedLine);
-      }
+          getWindow: (line) =>
+            line
+              ? {
+                  start: line.start,
+                  end: line.end,
+                }
+              : null,
+          createPrefix: ({ pos }) =>
+            `{\\k${paddingTiming}${highlightTemplate}\\pos(${centerX},${pos})}`,
+        }),
+      );
     }
 
     return `${assTemplate}${assLines.join('\n')}`;

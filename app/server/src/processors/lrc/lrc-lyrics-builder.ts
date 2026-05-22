@@ -5,7 +5,7 @@ import {
   createAssLayout,
   createAssTemplate,
   createAssTimingFormatter,
-  createDialogueLine,
+  renderAssChunk,
 } from '../shared';
 
 interface LyricBuilderOptions {
@@ -71,31 +71,6 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
     const lines: DisplayLine[] = [];
     const highlightTemplate = `\\r\\1c${highlightColour}\\b1`;
 
-    const appendChunk = (
-      chunk: Array<DisplayLine | undefined>,
-      start: number,
-      end: number,
-      highlightedIndex?: number,
-    ) => {
-      for (let j = 0; j < chunk.length; j++) {
-        const line = chunk[j];
-        const pos = positions[j];
-
-        const prefixTemplate =
-          j === highlightedIndex
-            ? `{${highlightTemplate}\\pos(${centerX},${pos})}`
-            : `{\\pos(${centerX},${pos})}`;
-        const formattedLine = createDialogueLine({
-          start,
-          end,
-          lyric: line?.lyric || '',
-          prefix: prefixTemplate,
-          formatTiming: convertTiming,
-        });
-        assLines.push(formattedLine);
-      }
-    };
-
     for (let i = 0; i < lyricLines.length; i++) {
       const line = lyricLines[i];
       const nextLineStart = lyricLines[i + 1]?.startTime || line.startTime;
@@ -116,10 +91,41 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
       const currentLine = chunk[1];
 
       if (currentLine.displayStart < currentLine.activeStart) {
-        appendChunk(chunk, currentLine.displayStart, currentLine.activeStart);
+        assLines.push(
+          ...renderAssChunk({
+            chunk,
+            positions,
+            centerX,
+            formatTiming: convertTiming,
+            window: {
+              start: currentLine.displayStart,
+              end: currentLine.activeStart,
+            },
+            createPrefix: ({ pos, isHighlighted }) =>
+              isHighlighted
+                ? `{${highlightTemplate}\\pos(${centerX},${pos})}`
+                : `{\\pos(${centerX},${pos})}`,
+          }),
+        );
       }
 
-      appendChunk(chunk, currentLine.activeStart, currentLine.end, 1);
+      assLines.push(
+        ...renderAssChunk({
+          chunk,
+          positions,
+          centerX,
+          formatTiming: convertTiming,
+          window: {
+            start: currentLine.activeStart,
+            end: currentLine.end,
+          },
+          createPrefix: ({ pos, isHighlighted }) =>
+            isHighlighted
+              ? `{${highlightTemplate}\\pos(${centerX},${pos})}`
+              : `{\\pos(${centerX},${pos})}`,
+          highlightedIndex: 1,
+        }),
+      );
     }
 
     return `${assTemplate}${assLines.join('\n')}`;

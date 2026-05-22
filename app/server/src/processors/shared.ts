@@ -126,3 +126,75 @@ export const createDialogueLine = ({
 
   return `Dialogue: 0,0:${startTiming},0:${endTiming},${style},,0,0,0,,${prefix}${lyric}`;
 };
+
+interface DialogueWindow {
+  start: number;
+  end: number;
+}
+
+interface RenderAssChunkOptions<TLine extends { lyric: string }> {
+  chunk: Array<TLine | undefined>;
+  positions: number[];
+  centerX: number;
+  formatTiming: (value: number) => string;
+  createPrefix: (args: {
+    line: TLine | undefined;
+    index: number;
+    pos: number;
+    centerX: number;
+    isHighlighted: boolean;
+  }) => string;
+  getWindow?: (
+    line: TLine | undefined,
+    index: number,
+    chunk: Array<TLine | undefined>,
+  ) => DialogueWindow | null;
+  window?: DialogueWindow;
+  getStyle?: (line: TLine | undefined, index: number) => string | undefined;
+  highlightedIndex?: number;
+}
+
+export const renderAssChunk = <TLine extends { lyric: string }>({
+  chunk,
+  positions,
+  centerX,
+  formatTiming,
+  createPrefix,
+  getWindow,
+  window,
+  getStyle,
+  highlightedIndex,
+}: RenderAssChunkOptions<TLine>) => {
+  const renderedLines: string[] = [];
+
+  for (let index = 0; index < chunk.length; index++) {
+    const line = chunk[index];
+    const pos = positions[index];
+    const dialogueWindow = getWindow
+      ? getWindow(line, index, chunk)
+      : window || null;
+
+    if (!dialogueWindow) {
+      continue;
+    }
+
+    renderedLines.push(
+      createDialogueLine({
+        start: dialogueWindow.start,
+        end: dialogueWindow.end,
+        lyric: line?.lyric || '',
+        style: getStyle?.(line, index),
+        prefix: createPrefix({
+          line,
+          index,
+          pos,
+          centerX,
+          isHighlighted: index === highlightedIndex,
+        }),
+        formatTiming,
+      }),
+    );
+  }
+
+  return renderedLines;
+};

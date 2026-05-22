@@ -7,6 +7,11 @@ import type {
   ASSTag,
 } from './ass-parser';
 
+const FULL_OPACITY = 1;
+const NO_ACTIVE_SYLLABLE = -1;
+const TOP_ALIGNMENT_THRESHOLD = 7;
+const MIDDLE_ALIGNMENT_THRESHOLD = 4;
+
 export class ASSRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -229,7 +234,7 @@ export class ASSRenderer {
       fadTag.value === null ||
       !('in' in fadTag.value)
     ) {
-      return 1;
+      return FULL_OPACITY;
     }
 
     const relativeTime = timeMs - event.start;
@@ -244,14 +249,14 @@ export class ASSRenderer {
       return (duration - relativeTime) / fadeOut;
     }
 
-    return 1;
+    return FULL_OPACITY;
   }
 
   private calculateCurrentSyllable(event: ASSEvent, timeMs: number): number {
     let elapsedTime = timeMs - event.start;
 
     if (elapsedTime < event.preRenderDelay) {
-      return -1;
+      return NO_ACTIVE_SYLLABLE;
     }
 
     elapsedTime -= event.preRenderDelay;
@@ -335,11 +340,11 @@ export class ASSRenderer {
   ): number {
     const { playResY } = this.subtitle.metadata;
 
-    if (alignment >= 7) {
+    if (alignment >= TOP_ALIGNMENT_THRESHOLD) {
       return marginV;
     }
 
-    if (alignment >= 4) {
+    if (alignment >= MIDDLE_ALIGNMENT_THRESHOLD) {
       return playResY / 2;
     }
 

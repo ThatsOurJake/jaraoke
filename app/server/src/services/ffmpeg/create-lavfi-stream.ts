@@ -11,6 +11,11 @@ import { createLogger } from '../../utils/logger';
 import { rng } from '../../utils/rng';
 
 const logger = createLogger('create-lavfi-stream');
+const BACKGROUND_VIDEO_START_INDEX = 1;
+const VIDEO_INDEX_OFFSET = 1;
+const FALLBACK_VIDEO_WIDTH = 1280;
+const FALLBACK_VIDEO_HEIGHT = 720;
+const FALLBACK_VIDEO_FRAME_RATE = 25;
 
 const logFfmpegErrorOutput = (output: string) => {
   const lines = output
@@ -34,7 +39,8 @@ const getBackgroundAsset = (): string | null => {
     .readdirSync(assetDirectories.backgrounds)
     .filter((x) => x.endsWith('mp4'))
     .map((x) => path.join(assetDirectories.backgrounds, x));
-  const index = rng(1, videos.length) - 1;
+  const index =
+    rng(BACKGROUND_VIDEO_START_INDEX, videos.length) - VIDEO_INDEX_OFFSET;
   return videos[index];
 };
 
@@ -86,7 +92,7 @@ export const createLavfiStream = (
       '-f',
       'lavfi',
       '-i',
-      'color=size=1280x720:rate=25:color=black',
+      `color=size=${FALLBACK_VIDEO_WIDTH}x${FALLBACK_VIDEO_HEIGHT}:rate=${FALLBACK_VIDEO_FRAME_RATE}:color=black`,
     ];
     videoInputLabel = `${lavifiIndex}:v`;
   }

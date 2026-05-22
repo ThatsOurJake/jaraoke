@@ -43,6 +43,16 @@ interface LineTiming extends Line {
 }
 
 const PAGE_RESET_GAP_MULTIPLIER = 2;
+const KFN_TIMING_UNITS_PER_SECOND = 100;
+const DEFAULT_PADDING_TIMING = 100;
+const DEFAULT_MAX_LINES_ON_SCREEN = 4;
+const DEFAULT_LINE_END_BUFFER = 500;
+const SECTION_LABEL_OFFSET_SCALE = 0.75;
+const DEFAULT_COUNTDOWN_STARTING_NUMBER = 3;
+const MIN_TRANSLATION_BLOCK_GAP = 6;
+const TRANSLATION_BLOCK_GAP_SCALE = 0.35;
+const MIN_TRANSLATION_LEAD_IN = 12;
+const TRANSLATION_LEAD_IN_SCALE = 0.25;
 
 export const kfnLyricsBuilder = (
   opts:
@@ -71,7 +81,7 @@ export const kfnLyricsBuilder = (
     iniReader = kfnSongIniReader({ kfnDirectory });
   }
 
-  const convertTiming = createAssTimingFormatter(100);
+  const convertTiming = createAssTimingFormatter(KFN_TIMING_UNITS_PER_SECOND);
 
   const getTimings = (eff: KfnLyricsEffect) => {
     return Object.entries(eff)
@@ -185,7 +195,8 @@ export const kfnLyricsBuilder = (
     for (const element of lyrics.values()) {
       const startingTiming = element[0].timing;
       const endingTiming =
-        element[element.length - 1].timing || startingTiming + 500;
+        element[element.length - 1].timing ||
+        startingTiming + DEFAULT_LINE_END_BUFFER;
 
       const paddingStart = startingTiming - paddingTiming;
       const paddingEnd = endingTiming + paddingTiming;
@@ -238,7 +249,7 @@ export const kfnLyricsBuilder = (
       (_, index) => initialStartPos + fontSize * index,
     );
     const labelY = Math.max(
-      sectionTop + fontSize * 0.75,
+      sectionTop + fontSize * SECTION_LABEL_OFFSET_SCALE,
       positions[0] - fontSize,
     );
 
@@ -250,11 +261,11 @@ export const kfnLyricsBuilder = (
 
   const toAss = (options?: LyricBuilderAssOptions) => {
     const {
-      paddingTiming = 100,
+      paddingTiming = DEFAULT_PADDING_TIMING,
       font = 'IMPACT',
       fontSize,
       highlightColours,
-      maxLinesOnScreen = 4,
+      maxLinesOnScreen = DEFAULT_MAX_LINES_ON_SCREEN,
       screen,
     } = options || {};
     const {
@@ -344,9 +355,9 @@ export const kfnLyricsBuilder = (
 
     const countdownLines = constructCountdown({
       firstTiming: earliestLineStart + paddingTiming,
-      startingNumber: 3,
+      startingNumber: DEFAULT_COUNTDOWN_STARTING_NUMBER,
       paddingTiming,
-      unitsPerSecond: 100,
+      unitsPerSecond: KFN_TIMING_UNITS_PER_SECOND,
     });
 
     for (const line of countdownLines) {
@@ -380,12 +391,15 @@ export const kfnLyricsBuilder = (
     }
 
     const translationBlockGap = Math.max(
-      6,
-      Math.round(subtitleFontSize * 0.35),
+      MIN_TRANSLATION_BLOCK_GAP,
+      Math.round(subtitleFontSize * TRANSLATION_BLOCK_GAP_SCALE),
     );
     const translationLeadIn = Math.min(
       paddingTiming,
-      Math.max(12, Math.round(paddingTiming * 0.25)),
+      Math.max(
+        MIN_TRANSLATION_LEAD_IN,
+        Math.round(paddingTiming * TRANSLATION_LEAD_IN_SCALE),
+      ),
     );
     const translationBaseY = getTranslationBaseY({
       firstVisiblePos: positions[0],

@@ -1,15 +1,29 @@
 import type { AssLine, LyricBuilderAssOptions } from 'jaraoke-shared/types';
 
+const DEFAULT_SCREEN_WIDTH = 1280;
+const DEFAULT_SCREEN_HEIGHT = 720;
+const TIMING_PAD_LENGTH = 2;
+const SECONDS_PER_MINUTE = 60;
+const CENTISECONDS_PER_SECOND = 100;
+const DEFAULT_COUNTDOWN_STARTING_NUMBER = 3;
+const DEFAULT_COUNTDOWN_PADDING_TIMING = 100;
+const COUNTDOWN_FADE_DURATION = 300;
+const DEFAULT_LYRIC_FONT_SIZE = 48;
+const MIN_SUBTITLE_FONT_SIZE = 20;
+const SUBTITLE_FONT_SIZE_RATIO = 0.55;
+const COUNTDOWN_FONT_SIZE = 80;
+
 const DEFAULT_SCREEN = {
-  width: 1280,
-  height: 720,
+  width: DEFAULT_SCREEN_WIDTH,
+  height: DEFAULT_SCREEN_HEIGHT,
 };
 
-const padTiming = (value: number) => value.toString().padStart(2, '0');
+const padTiming = (value: number) =>
+  value.toString().padStart(TIMING_PAD_LENGTH, '0');
 
 export const createAssTimingFormatter = (unitsPerSecond: number) => {
-  const unitsPerMinute = unitsPerSecond * 60;
-  const unitsPerCentisecond = unitsPerSecond / 100;
+  const unitsPerMinute = unitsPerSecond * SECONDS_PER_MINUTE;
+  const unitsPerCentisecond = unitsPerSecond / CENTISECONDS_PER_SECOND;
 
   return (value: number) => {
     const minutes = Math.floor(value / unitsPerMinute);
@@ -33,8 +47,8 @@ interface ConstructCountdownOptions {
 
 export const constructCountdown = ({
   firstTiming,
-  startingNumber = 3,
-  paddingTiming = 100,
+  startingNumber = DEFAULT_COUNTDOWN_STARTING_NUMBER,
+  paddingTiming = DEFAULT_COUNTDOWN_PADDING_TIMING,
   unitsPerSecond,
 }: ConstructCountdownOptions): AssLine[] => {
   return Array.from({ length: startingNumber }, (_, index) => {
@@ -44,7 +58,7 @@ export const constructCountdown = ({
     return {
       start: firstTiming - countdownUnits - unitsPerSecond - paddingTiming,
       end: firstTiming - countdownUnits - paddingTiming,
-      lyric: `{\\fad(300,300)}${number}`,
+      lyric: `{\\fad(${COUNTDOWN_FADE_DURATION},${COUNTDOWN_FADE_DURATION})}${number}`,
       style: 'Countdown',
     };
   });
@@ -64,9 +78,13 @@ interface ResolvedAssFontSizes {
 export const resolveAssFontSizes = (
   fontSize?: LyricBuilderAssOptions['fontSize'],
 ): ResolvedAssFontSizes => {
-  const lyrics = fontSize?.lyrics ?? 48;
+  const lyrics = fontSize?.lyrics ?? DEFAULT_LYRIC_FONT_SIZE;
   const subtitle =
-    fontSize?.subtitle ?? Math.max(20, Math.round(lyrics * 0.55));
+    fontSize?.subtitle ??
+    Math.max(
+      MIN_SUBTITLE_FONT_SIZE,
+      Math.round(lyrics * SUBTITLE_FONT_SIZE_RATIO),
+    );
 
   return {
     lyrics,
@@ -115,7 +133,7 @@ PlayResY: 720
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Default,${font},${fontSize},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1
-Style: Countdown,Arial Black,80,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,2,5,10,10,10,1
+Style: Countdown,Arial Black,${COUNTDOWN_FONT_SIZE},&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,2,5,10,10,10,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

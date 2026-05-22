@@ -3,6 +3,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tauri::Manager;
 
+const MIN_SPLASH_DURATION_SECONDS: u64 = 2;
+const MAX_HEALTH_CHECK_ATTEMPTS: u32 = 60;
+const HEALTH_CHECK_INTERVAL_MS: u64 = 500;
+const HEALTH_CHECK_URL: &str = "http://127.0.0.1:9897/api/health";
+
 #[derive(Deserialize)]
 struct HealthResponse {
     ready: bool,
@@ -11,11 +16,11 @@ struct HealthResponse {
 pub fn poll_health_and_show_window(app_handle: tauri::AppHandle) {
     thread::spawn(move || {
         let start_time = Instant::now();
-        let min_splash_duration = Duration::from_secs(2);
+        let min_splash_duration = Duration::from_secs(MIN_SPLASH_DURATION_SECONDS);
 
         let client = reqwest::blocking::Client::new();
-        let health_url = "http://127.0.0.1:9897/api/health";
-        let max_attempts = 60; // 30 seconds max (60 * 500ms)
+        let health_url = HEALTH_CHECK_URL;
+        let max_attempts = MAX_HEALTH_CHECK_ATTEMPTS; // 30 seconds max (60 * 500ms)
         let mut attempts = 0;
         let mut server_ready = false;
 
@@ -31,7 +36,7 @@ pub fn poll_health_and_show_window(app_handle: tauri::AppHandle) {
             }
 
             attempts += 1;
-            thread::sleep(Duration::from_millis(500));
+            thread::sleep(Duration::from_millis(HEALTH_CHECK_INTERVAL_MS));
         }
 
         if !server_ready {

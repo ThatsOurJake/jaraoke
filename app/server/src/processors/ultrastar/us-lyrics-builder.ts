@@ -10,9 +10,19 @@ import {
   createAssTemplate,
   createAssTimingFormatter,
   createDialogueLine,
+  paginateAssLines,
   renderAssChunk,
   resolveAssFontSizes,
 } from '../shared';
+
+interface TimedAssLine extends AssLine {
+  activeStart: number;
+  activeEnd: number;
+}
+
+type LyricNote = UltrastarNote & { text: string };
+
+const PAGE_RESET_GAP_MULTIPLIER = 2;
 
 export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
   const { notes, gap = 0 } = ultrastarFile;
@@ -59,8 +69,9 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
     const assTemplate = createAssTemplate({ font, fontSize: lyricFontSize });
 
     const assLines: string[] = [];
-    const lines: AssLine[] = [];
+    const lines: TimedAssLine[] = [];
     const highlightTemplate = `\\r\\1c${personOneHighlight}`;
+    const pageResetGap = paddingTiming * 10 * PAGE_RESET_GAP_MULTIPLIER;
 
     for (const group of noteGroups) {
       const startingTiming = group[0].start;
@@ -70,12 +81,18 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
       const paddingEnd = endingTiming + gap + paddingTiming * 10;
 
       const parts: { start: number; str: string }[] = [];
-      const filteredGroup = group
-        .filter((x) => !x.endOfPhrase && x.text !== '~')
-        .map((x) => ({
-          ...x,
-          text: x.text?.replace(/~/g, ''),
-        }));
+      const filteredGroup = group.reduce<LyricNote[]>((acc, note) => {
+        if (note.endOfPhrase || note.text === '~' || !note.text) {
+          return acc;
+        }
+
+        acc.push({
+          ...note,
+          text: note.text.replace(/~/g, ''),
+        });
+
+        return acc;
+      }, []);
 
       for (let i = 0; i < filteredGroup.length; i++) {
         const word = filteredGroup[i];
@@ -84,7 +101,7 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
 
         parts.push({
           start: Math.round(start / 10),
-          str: word.text!,
+          str: word.text,
         });
       }
 
@@ -93,6 +110,8 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
       lines.push({
         start: paddingStart,
         end: paddingEnd,
+        activeStart: startingTiming + gap,
+        activeEnd: endingTiming + gap,
         lyric,
       });
     }
@@ -117,10 +136,14 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
       assLines.push(formattedLine);
     }
 
-    for (let i = 0; i < lines.length; i += maxLinesOnScreen) {
-      const chunk = lines.slice(i, i + maxLinesOnScreen);
+    const pages = paginateAssLines({
+      lines,
+      pageSize: positions.length,
+      shouldStartNewPage: (previousLine, nextLine) =>
+        nextLine.activeStart - previousLine.activeEnd > pageResetGap,
+    });
 
-      // TODO: If the timings between the next end and start are far away we can reset back to positions[0]
+    for (const chunk of pages) {
       assLines.push(
         ...renderAssChunk({
           chunk,

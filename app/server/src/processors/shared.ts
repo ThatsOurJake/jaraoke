@@ -149,6 +149,16 @@ interface DialogueWindow {
   end: number;
 }
 
+interface PaginateAssLinesOptions<TLine> {
+  lines: TLine[];
+  pageSize: number;
+  shouldStartNewPage?: (
+    previousLine: TLine,
+    nextLine: TLine,
+    currentPage: TLine[],
+  ) => boolean;
+}
+
 interface RenderAssChunkOptions<TLine extends { lyric: string }> {
   chunk: Array<TLine | undefined>;
   positions: number[];
@@ -200,4 +210,36 @@ export const renderAssChunk = <TLine extends { lyric: string }>({
   }
 
   return renderedLines;
+};
+
+export const paginateAssLines = <TLine>({
+  lines,
+  pageSize,
+  shouldStartNewPage,
+}: PaginateAssLinesOptions<TLine>) => {
+  const safePageSize = Math.max(1, pageSize);
+  const pages: TLine[][] = [];
+  let currentPage: TLine[] = [];
+
+  for (const line of lines) {
+    const previousLine = currentPage[currentPage.length - 1];
+    const pageIsFull = currentPage.length >= safePageSize;
+    const shouldResetPage =
+      previousLine && shouldStartNewPage
+        ? shouldStartNewPage(previousLine, line, currentPage)
+        : false;
+
+    if (pageIsFull || shouldResetPage) {
+      pages.push(currentPage);
+      currentPage = [];
+    }
+
+    currentPage.push(line);
+  }
+
+  if (currentPage.length > 0) {
+    pages.push(currentPage);
+  }
+
+  return pages;
 };

@@ -9,6 +9,7 @@ import {
   createAssTemplate,
   createAssTimingFormatter,
   createDialogueLine,
+  paginateAssLines,
   renderAssChunk,
   resolveAssFontSizes,
 } from '../shared';
@@ -32,13 +33,20 @@ interface LineTiming extends Line {
   timing: number;
 }
 
+interface TimedAssLine extends AssLine {
+  activeStart: number;
+  activeEnd: number;
+}
+
 interface KfnLyricsSection {
   caption?: string;
   highlightColour: string;
-  lines: AssLine[];
+  lines: TimedAssLine[];
   positions: number[];
   labelY: number;
 }
+
+const PAGE_RESET_GAP_MULTIPLIER = 2;
 
 const normalizeSingerName = (value?: string) =>
   value?.trim().toLowerCase() || '';
@@ -56,8 +64,19 @@ export const kfnLyricsBuilder = (
     );
   }
 
-  const iniReader =
-    songIniInstance || kfnSongIniReader({ kfnDirectory: kfnDirectory! });
+  let iniReader: SongIniReaderInstance;
+
+  if (songIniInstance) {
+    iniReader = songIniInstance;
+  } else {
+    if (!kfnDirectory) {
+      throw new Error(
+        'Please pass in either a kfn directory or SongIni Reader Instance',
+      );
+    }
+
+    iniReader = kfnSongIniReader({ kfnDirectory });
+  }
 
   const convertTiming = createAssTimingFormatter(100);
 
@@ -72,7 +91,9 @@ export const kfnLyricsBuilder = (
 
         const parts = value.split(',').map((x) => parseInt(x, 10));
 
-        return [...acc, ...parts];
+        acc.push(...parts);
+
+        return acc;
       }, [])
       .filter((x) => x);
   };
@@ -92,13 +113,12 @@ export const kfnLyricsBuilder = (
 
       const str = value.replace(/ {2,}/g, ' ').trim();
 
-      return [
-        ...acc,
-        {
-          str,
-          group: key,
-        },
-      ];
+      acc.push({
+        str,
+        group: key,
+      });
+
+      return acc;
     }, []);
   };
 
@@ -113,7 +133,9 @@ export const kfnLyricsBuilder = (
           group: current.group,
         }));
 
-        return [...acc, ...wordsGroup];
+        acc.push(...wordsGroup);
+
+        return acc;
       }, []);
   };
 
@@ -133,11 +155,10 @@ export const kfnLyricsBuilder = (
 
     for (let i = 0; i < lyrics.length; i++) {
       const { group } = lyrics[i];
+      const existingGroup = output.get(group);
 
-      if (output.has(group)) {
-        const copy = [...output.get(group)!];
-        copy.push(lyrics[i]);
-        output.set(group, copy);
+      if (existingGroup) {
+        existingGroup.push(lyrics[i]);
       } else {
         output.set(group, [lyrics[i]]);
       }
@@ -165,8 +186,8 @@ export const kfnLyricsBuilder = (
   const buildLines = (
     lyrics: Map<string, LineTiming[]>,
     paddingTiming: number,
-  ): AssLine[] => {
-    const lines: AssLine[] = [];
+  ): TimedAssLine[] => {
+    const lines: TimedAssLine[] = [];
 
     for (const element of lyrics.values()) {
       const startingTiming = element[0].timing;
@@ -199,6 +220,8 @@ export const kfnLyricsBuilder = (
       lines.push({
         start: paddingStart,
         end: paddingEnd,
+        activeStart: startingTiming,
+        activeEnd: endingTiming,
         lyric,
       });
     }
@@ -263,6 +286,7 @@ export const kfnLyricsBuilder = (
 
     const assLines: string[] = [];
     const isDuet = syncedEffects.length > 1;
+    const pageResetGap = paddingTiming * PAGE_RESET_GAP_MULTIPLIER;
     const mainSinger = normalizeSingerName(iniReader.getMetadata()?.artist);
     const orderedEffects = isDuet
       ? [...syncedEffects].sort(
@@ -369,11 +393,14 @@ export const kfnLyricsBuilder = (
 
     for (const section of sections) {
       const highlightTemplate = `\\r\\1c${section.highlightColour}`;
+      const pages = paginateAssLines({
+        lines: section.lines,
+        pageSize: section.positions.length,
+        shouldStartNewPage: (previousLine, nextLine) =>
+          nextLine.activeStart - previousLine.activeEnd > pageResetGap,
+      });
 
-      for (let i = 0; i < section.lines.length; i += section.positions.length) {
-        const chunk = section.lines.slice(i, i + section.positions.length);
-
-        // TODO: If the timings between the next end and start are far away we can reset back to positions[0]
+      for (const chunk of pages) {
         assLines.push(
           ...renderAssChunk({
             chunk,

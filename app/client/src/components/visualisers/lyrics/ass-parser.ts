@@ -64,8 +64,6 @@ const MILLISECONDS_PER_HOUR = 3_600_000;
 const MILLISECONDS_PER_MINUTE = 60_000;
 const MILLISECONDS_PER_SECOND = 1_000;
 const MILLISECONDS_PER_CENTISECOND = 10;
-const ASS_COLOR_WITH_ALPHA_LENGTH = 8;
-const ASS_COLOR_LENGTH = 6;
 const STYLE_PREFIX_LENGTH = 6;
 const DIALOGUE_PREFIX_LENGTH = 9;
 const MIN_STYLE_FIELD_COUNT = 23;
@@ -99,14 +97,14 @@ function parseColor(assColor: string): string {
   // ASS colors are in format &HAABBGGRR or &HBBGGRR
   const hex = assColor.replace('&H', '');
 
-  if (hex.length === ASS_COLOR_WITH_ALPHA_LENGTH) {
+  if (hex.length === 8) {
     // &HAABBGGRR
     const aa = hex.substring(0, 2);
     const bb = hex.substring(2, 4);
     const gg = hex.substring(4, 6);
     const rr = hex.substring(6, 8);
     return `#${rr}${gg}${bb}${aa}`;
-  } else if (hex.length === ASS_COLOR_LENGTH) {
+  } else if (hex.length === 6) {
     // &HBBGGRR
     const bb = hex.substring(0, 2);
     const gg = hex.substring(2, 4);

@@ -7,6 +7,11 @@ import type {
   ASSTag,
 } from './ass-parser';
 
+const FULL_OPACITY = 1;
+const NO_ACTIVE_SYLLABLE = -1;
+const TOP_ALIGNMENT_THRESHOLD = 7;
+const MIDDLE_ALIGNMENT_THRESHOLD = 4;
+
 export class ASSRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -160,16 +165,20 @@ export class ASSRenderer {
     const { x, y } = this.calculatePosition(posTag, style);
     const opacity = this.calculateOpacity(fadTag, event, timeMs);
     const currentSyllableIndex = this.calculateCurrentSyllable(event, timeMs);
+    const eventFontSize = this.resolveFontSize(event.tags, style.fontSize);
 
     this.ctx.save();
-    this.applyFontStyle(style);
+    this.applyFontStyle(style, eventFontSize);
 
-    const totalWidth = this.measureEventWidth(event, style);
+    const totalWidth = this.measureEventWidth(event, style, eventFontSize);
     let currentX = x - totalWidth / 2;
+    let currentFontSize = eventFontSize;
 
     for (let i = 0; i < event.syllables.length; i++) {
       const syllable = event.syllables[i];
       const isActive = currentSyllableIndex >= i;
+      currentFontSize = this.resolveFontSize(syllable.tags, currentFontSize);
+      this.applyFontStyle(style, currentFontSize);
 
       const textColor = this.getSyllableColor(
         syllable,
@@ -225,7 +234,7 @@ export class ASSRenderer {
       fadTag.value === null ||
       !('in' in fadTag.value)
     ) {
-      return 1;
+      return FULL_OPACITY;
     }
 
     const relativeTime = timeMs - event.start;
@@ -240,14 +249,14 @@ export class ASSRenderer {
       return (duration - relativeTime) / fadeOut;
     }
 
-    return 1;
+    return FULL_OPACITY;
   }
 
   private calculateCurrentSyllable(event: ASSEvent, timeMs: number): number {
     let elapsedTime = timeMs - event.start;
 
     if (elapsedTime < event.preRenderDelay) {
-      return -1;
+      return NO_ACTIVE_SYLLABLE;
     }
 
     elapsedTime -= event.preRenderDelay;
@@ -283,22 +292,43 @@ export class ASSRenderer {
     return textColor;
   }
 
-  private applyFontStyle(style: ASSStyle): void {
+  private resolveFontSize(tags: ASSTag[], fallbackSize: number): number {
+    let fontSize = fallbackSize;
+
+    for (const tag of tags) {
+      if (tag.type === 'fs' && typeof tag.value === 'number') {
+        fontSize = tag.value;
+      }
+    }
+
+    return fontSize;
+  }
+
+  private applyFontStyle(
+    style: ASSStyle,
+    fontSize: number = style.fontSize,
+  ): void {
     const fontWeight = style.bold ? 'bold' : 'normal';
     const fontStyle = style.italic ? 'italic' : 'normal';
-    this.ctx.font = `${fontStyle} ${fontWeight} ${style.fontSize}px ${style.fontName}`;
+    this.ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${style.fontName}`;
     this.ctx.textAlign = 'left';
     this.ctx.textBaseline = 'middle';
   }
 
-  private measureEventWidth(event: ASSEvent, style: ASSStyle): number {
+  private measureEventWidth(
+    event: ASSEvent,
+    style: ASSStyle,
+    eventFontSize: number,
+  ): number {
     this.ctx.save();
-    this.applyFontStyle(style);
+    let currentFontSize = eventFontSize;
 
-    const totalWidth = event.syllables.reduce(
-      (width, syllable) => width + this.ctx.measureText(syllable.text).width,
-      0,
-    );
+    const totalWidth = event.syllables.reduce((width, syllable) => {
+      currentFontSize = this.resolveFontSize(syllable.tags, currentFontSize);
+      this.applyFontStyle(style, currentFontSize);
+
+      return width + this.ctx.measureText(syllable.text).width;
+    }, 0);
 
     this.ctx.restore();
     return totalWidth;
@@ -310,11 +340,11 @@ export class ASSRenderer {
   ): number {
     const { playResY } = this.subtitle.metadata;
 
-    if (alignment >= 7) {
+    if (alignment >= TOP_ALIGNMENT_THRESHOLD) {
       return marginV;
     }
 
-    if (alignment >= 4) {
+    if (alignment >= MIDDLE_ALIGNMENT_THRESHOLD) {
       return playResY / 2;
     }
 

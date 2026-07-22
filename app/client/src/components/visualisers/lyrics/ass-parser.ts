@@ -60,6 +60,17 @@ export interface ASSSubtitle {
   events: ASSEvent[];
 }
 
+const MILLISECONDS_PER_HOUR = 3_600_000;
+const MILLISECONDS_PER_MINUTE = 60_000;
+const MILLISECONDS_PER_SECOND = 1_000;
+const MILLISECONDS_PER_CENTISECOND = 10;
+const STYLE_PREFIX_LENGTH = 6;
+const DIALOGUE_PREFIX_LENGTH = 9;
+const MIN_STYLE_FIELD_COUNT = 23;
+const MIN_DIALOGUE_FIELD_COUNT = 10;
+const DEFAULT_ASS_PLAY_RES_X = 640;
+const DEFAULT_ASS_PLAY_RES_Y = 480;
+
 /**
  * Parses an ASS timestamp (HH:MM:SS.CS) to milliseconds
  */
@@ -71,7 +82,12 @@ function parseTimestamp(timestamp: string): number {
   const seconds = parseInt(secondsParts[0], 10);
   const centiseconds = parseInt(secondsParts[1], 10);
 
-  return hours * 3600000 + minutes * 60000 + seconds * 1000 + centiseconds * 10;
+  return (
+    hours * MILLISECONDS_PER_HOUR +
+    minutes * MILLISECONDS_PER_MINUTE +
+    seconds * MILLISECONDS_PER_SECOND +
+    centiseconds * MILLISECONDS_PER_CENTISECOND
+  );
 }
 
 /**
@@ -107,10 +123,10 @@ function parseStyle(line: string): ASSStyle | null {
     return null;
   }
 
-  const content = line.substring(6).trim();
+  const content = line.substring(STYLE_PREFIX_LENGTH).trim();
   const parts = content.split(',').map((p) => p.trim());
 
-  if (parts.length < 23) {
+  if (parts.length < MIN_STYLE_FIELD_COUNT) {
     return null;
   }
 
@@ -149,7 +165,8 @@ function parseTag(tagContent: string): ASSTag | null {
   if (tagContent.match(/^k\d+$/)) {
     return {
       type: 'k',
-      value: parseInt(tagContent.substring(1), 10) * 10, // centiseconds to milliseconds
+      value:
+        parseInt(tagContent.substring(1), 10) * MILLISECONDS_PER_CENTISECOND, // centiseconds to milliseconds
     };
   }
 
@@ -174,6 +191,14 @@ function parseTag(tagContent: string): ASSTag | null {
         x: parseFloat(values[0]),
         y: parseFloat(values[1]),
       },
+    };
+  }
+
+  // Handle \fs tag (font size override)
+  if (tagContent.match(/^fs\d+(?:\.\d+)?$/)) {
+    return {
+      type: 'fs',
+      value: parseFloat(tagContent.substring(2)),
     };
   }
 
@@ -291,9 +316,12 @@ function parseDialogueText(text: string): {
 
   let preRenderDelay = 0;
   if (syllables.length > 0 && syllables[0].text.trim().length === 0) {
-    const firstSyllable = syllables.shift()!;
-    globalTags.push(...firstSyllable.tags);
-    preRenderDelay = firstSyllable.duration;
+    const firstSyllable = syllables.shift();
+
+    if (firstSyllable) {
+      globalTags.push(...firstSyllable.tags);
+      preRenderDelay = firstSyllable.duration;
+    }
   }
 
   return { syllables, globalTags, preRenderDelay };
@@ -307,10 +335,10 @@ function parseEvent(line: string): ASSEvent | null {
     return null;
   }
 
-  const content = line.substring(9).trim();
+  const content = line.substring(DIALOGUE_PREFIX_LENGTH).trim();
   const parts = content.split(',');
 
-  if (parts.length < 10) {
+  if (parts.length < MIN_DIALOGUE_FIELD_COUNT) {
     return null;
   }
 
@@ -342,8 +370,8 @@ export function parseASS(content: string): ASSSubtitle {
 
   const result: ASSSubtitle = {
     metadata: {
-      playResX: 640,
-      playResY: 480,
+      playResX: DEFAULT_ASS_PLAY_RES_X,
+      playResY: DEFAULT_ASS_PLAY_RES_Y,
     },
     styles: [],
     events: [],

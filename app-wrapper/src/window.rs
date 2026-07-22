@@ -1,6 +1,12 @@
 use std::path::PathBuf;
 use tauri::{WebviewUrl, WebviewWindow};
 
+const SPLASH_WINDOW_WIDTH: f64 = 500.0;
+const SPLASH_WINDOW_HEIGHT: f64 = 400.0;
+const MAIN_WINDOW_WIDTH: f64 = 1200.0;
+const MAIN_WINDOW_HEIGHT: f64 = 640.0;
+const APP_SERVER_URL: &str = "http://127.0.0.1:9897";
+
 pub fn create_splash_window(app: &tauri::App, resources_dir: &PathBuf) -> Result<(), String> {
     // Resolve splash.html path
     let splash_path = resources_dir.join("splash.html");
@@ -21,7 +27,7 @@ pub fn create_splash_window(app: &tauri::App, resources_dir: &PathBuf) -> Result
         WebviewUrl::External(splash_url.parse().unwrap()),
     )
     .title("Loading Jaraoke...")
-    .inner_size(500.0, 400.0)
+    .inner_size(SPLASH_WINDOW_WIDTH, SPLASH_WINDOW_HEIGHT)
     .center()
     .decorations(false)
     .resizable(false)
@@ -38,10 +44,10 @@ pub fn create_main_window(
     let window = tauri::WebviewWindow::builder(
         app_handle,
         "main",
-        WebviewUrl::External("http://127.0.0.1:9897".parse()?),
+        WebviewUrl::External(APP_SERVER_URL.parse()?),
     )
     .title("Jaraoke")
-    .inner_size(1200.0, 640.0)
+    .inner_size(MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT)
     .visible(true)
     .build()?;
 

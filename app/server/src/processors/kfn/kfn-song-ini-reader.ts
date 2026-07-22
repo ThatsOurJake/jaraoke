@@ -2,7 +2,39 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse as parseIni } from 'ini';
 
-import type { KFNTrack, kfnTrackTypes } from 'jaraoke-shared/types';
+import type {
+  JaraokeLyricsType,
+  KFNTrack,
+  kfnTrackTypes,
+} from 'jaraoke-shared/types';
+
+export type KfnLyricsEffect = Record<string, string>;
+export interface KfnLyricsEffectDetails {
+  effect: KfnLyricsEffect;
+  lyricLineCount: number;
+  hasCaption: boolean;
+}
+
+type ParsedIni = Record<string, KfnLyricsEffect>;
+
+const getMeaningfulTextLines = (effect: KfnLyricsEffect) => {
+  return Object.entries(effect).reduce((acc: string[], [key, value]) => {
+    if (!/text\d/.test(key)) {
+      return acc;
+    }
+
+    const trimmedValue = value.trim();
+    const visibleValue = trimmedValue.replace(/[_/\s]+/g, '');
+
+    if (!visibleValue) {
+      return acc;
+    }
+
+    acc.push(trimmedValue);
+
+    return acc;
+  }, []);
+};
 
 interface SongIniReaderOpts {
   kfnDirectory: string;
@@ -11,8 +43,7 @@ interface SongIniReaderOpts {
 export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
   const { kfnDirectory } = opts;
 
-  // TODO: Figure out typings
-  let parsedIni: { [key: string]: any } | null = null;
+  let parsedIni: ParsedIni | null = null;
 
   const parseIniFile = () => {
     const songIniLoc = path.join(kfnDirectory.toString(), 'Song.ini');
@@ -23,7 +54,7 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
 
     const songIniContents = fs.readFileSync(songIniLoc);
 
-    return parseIni(songIniContents.toString());
+    return parseIni(songIniContents.toString()) as ParsedIni;
   };
 
   const getIni = () => {
@@ -34,26 +65,71 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
     return parsedIni;
   };
 
-  const findLyricsEffect = () => {
+  const findLyricsEffects = (): KfnLyricsEffect[] => {
     const ini = getIni();
 
-    for (const section of Object.entries(ini)) {
+    return Object.entries(ini).reduce((acc: KfnLyricsEffect[], section) => {
       const [key, value] = section;
 
       if (!key.startsWith('eff')) {
-        continue;
+        return acc;
       }
 
-      for (const prop of Object.entries(value)) {
-        const [propKey, propValue] = prop;
+      const effect = value as KfnLyricsEffect;
 
-        if (propKey === 'insync' && propValue === '1') {
-          return value as Record<string, string>;
-        }
+      if (effect.insync !== '1') {
+        return acc;
       }
+
+      acc.push(effect);
+
+      return acc;
+    }, []);
+  };
+
+  const findLyricsEffect = () => {
+    return findLyricsEffects()[0] || null;
+  };
+
+  const describeLyricsEffects = (): KfnLyricsEffectDetails[] => {
+    return findLyricsEffects().map((effect) => {
+      const textLines = getMeaningfulTextLines(effect);
+      const caption = effect.caption?.trim() || '';
+
+      return {
+        effect,
+        lyricLineCount: textLines.length,
+        hasCaption: caption.length > 0,
+      };
+    });
+  };
+
+  const getLyricsType = (): JaraokeLyricsType => {
+    const effects = describeLyricsEffects();
+
+    if (effects.length <= 1) {
+      return 'single';
     }
 
-    return null;
+    const sortedByCoverage = [...effects].sort(
+      (a, b) => b.lyricLineCount - a.lyricLineCount,
+    );
+    const primaryEffect = sortedByCoverage[0];
+    const secondaryEffect = sortedByCoverage[1];
+    const allHaveCaptions = effects.every((effect) => effect.hasCaption);
+    const secondaryCoverageRatio =
+      secondaryEffect.lyricLineCount /
+      Math.max(1, primaryEffect.lyricLineCount);
+
+    if (
+      effects.length === 2 &&
+      secondaryCoverageRatio <= 0.5 &&
+      !allHaveCaptions
+    ) {
+      return 'translation';
+    }
+
+    return 'duet';
   };
 
   const getMetadata = () => {
@@ -150,7 +226,10 @@ export const kfnSongIniReader = (opts: SongIniReaderOpts) => {
   };
 
   return {
+    describeLyricsEffects,
+    findLyricsEffects,
     findLyricsEffect,
+    getLyricsType,
     getMetadata,
     getTracks,
   };

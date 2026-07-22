@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
+import type { CombinedJaraokeFiles, JaraokeFile } from 'jaraoke-shared/types';
 import { PLACEHOLDER_ALBUM_COVER } from '../../constants';
 import { formatTime } from '../../utils/format-time';
 
@@ -35,6 +35,10 @@ export const SongItem = ({
   const imgSrc =
     coverPhoto || `${import.meta.env.BASE_URL}${PLACEHOLDER_ALBUM_COVER}`;
 
+  const isJaraokeFile = (song: CombinedJaraokeFiles): song is JaraokeFile =>
+    'tracks' in song;
+  const isDuet = isJaraokeFile(song) && song.lyricsType === 'duet';
+
   return (
     <li className={classes} data-id={id} onClick={() => onSongSelected(song)}>
       <img
@@ -48,6 +52,7 @@ export const SongItem = ({
           title={title}
         >
           {title}
+          {isDuet && <span className="mx-1">[Duet]</span>}
         </p>
         <p className="text-sm">
           {artist || 'Unknown'} - {year || 'Unknown'}

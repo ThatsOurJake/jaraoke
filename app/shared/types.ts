@@ -112,8 +112,15 @@ export interface UltrastarFile {
 }
 
 export interface LyricBuilderAssOptions {
-  highlightColour?: string;
-  fontSize?: number;
+  highlightColours?: {
+    personOne?: string;
+    personTwo?: string;
+    translation?: string;
+  };
+  fontSize?: {
+    lyrics?: number;
+    subtitle?: number;
+  };
   font?: string;
   paddingTiming?: number;
   screen?: {
@@ -154,6 +161,8 @@ export interface JaraokeTrack {
   isToggleable: boolean;
 }
 
+export type JaraokeLyricsType = 'single' | 'duet' | 'translation';
+
 export interface JaraokeFileMeta {
   title: string;
   artist?: string;
@@ -172,6 +181,7 @@ interface BaseJarokeFIle {
 export interface JaraokeFile extends BaseJarokeFIle {
   tracks: JaraokeTrack[];
   lyrics: string;
+  lyricsType?: JaraokeLyricsType;
 }
 
 export interface JaraokeCDGFile extends BaseJarokeFIle {

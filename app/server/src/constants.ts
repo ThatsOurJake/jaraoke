@@ -1,7 +1,8 @@
 import path from 'node:path';
 import getAppDataPath from 'appdata-path';
 
-export const PORT = 9897;
+export const PORT = parseInt(process.env['PORT'] ?? '9897', 10);
+export const HOST = process.env['HOST'] ?? '0.0.0.0';
 export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 export const APP_NAME = IS_PRODUCTION ? 'jaraoke' : 'jaraoke-dev';
 

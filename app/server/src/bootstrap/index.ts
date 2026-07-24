@@ -10,7 +10,7 @@ export const bootstrap = async () => {
   createAndReadSettingsFile();
   checkForIndividualFiles();
   await processSongs();
-  readJaraokeFiles();
+  await readJaraokeFiles();
 
   store.setIsReady();
 };

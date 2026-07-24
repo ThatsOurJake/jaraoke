@@ -32,14 +32,18 @@ if (IS_PRODUCTION) {
   app.use(publicRouter.routes()).use(publicRouter.allowedMethods());
 }
 
-app.listen(PORT, HOST, async () => {
+app.listen(PORT, HOST, () => {
   logger.info(`Jaraoke backend listening on ${HOST}:${PORT}`);
-  try {
-    await bootstrap();
-    logger.info('Bootstrap complete — server is ready');
-  } catch (err: unknown) {
-    logger.error({ err }, 'Bootstrap failed');
-  }
+  // Defer bootstrap so the event loop can serve at least one tick
+  // (e.g. the splash-screen request) before any sync bootstrap work starts.
+  setImmediate(async () => {
+    try {
+      await bootstrap();
+      logger.info('Bootstrap complete — server is ready');
+    } catch (err: unknown) {
+      logger.error({ err }, 'Bootstrap failed');
+    }
+  });
 });
 
 process.on('uncaughtException', (err) => {

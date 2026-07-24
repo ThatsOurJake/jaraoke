@@ -1,7 +1,6 @@
 import fs from 'node:fs';
-import { extname } from 'node:path';
 import { IGNORED_FILES } from '../constants';
-import { findSupportedVideo, SUPPORTED_VIDEO_TYPES } from '../processors/video';
+import { findSupportedVideo } from '../processors/video';
 
 export enum FolderType {
   CDG,

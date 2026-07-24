@@ -40,11 +40,13 @@ export const HomeScreen = () => {
 
   if (isLoading) {
     return (
-      <div className="h-full w-full">
-        <div className="h-full flex justify-center items-center">
-          <Loading size="lg" />
+      <Wrapper>
+        <div className="h-full w-full">
+          <div className="h-full flex justify-center items-center">
+            <Loading size="lg" />
+          </div>
         </div>
-      </div>
+      </Wrapper>
     );
   }
 

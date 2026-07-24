@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { useLocation } from 'preact-iso';
 
 import { Loading } from '../components/loading';
+import { Wrapper } from '../components/wrapper';
 
 export const SplashScreen = () => {
   const { route } = useLocation();
@@ -40,13 +41,15 @@ export const SplashScreen = () => {
   }, []);
 
   return (
-    <div className="h-full w-full flex flex-col justify-center items-center gap-4">
-      <Loading size="lg" />
-      <p className="text-gray-200 text-lg">
-        {importedTracks > 0
-          ? `Imported ${importedTracks} track${importedTracks === 1 ? '' : 's'}…`
-          : 'Starting up…'}
-      </p>
-    </div>
+    <Wrapper>
+      <div className="h-full w-full flex flex-col justify-center items-center gap-4">
+        <Loading size="lg" />
+        <p className="text-gray-200 text-lg">
+          {importedTracks > 0
+            ? `Imported ${importedTracks} track${importedTracks === 1 ? '' : 's'}…`
+            : 'Starting up…'}
+        </p>
+      </div>
+    </Wrapper>
   );
 };

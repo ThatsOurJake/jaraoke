@@ -140,6 +140,7 @@ mkdir -p "$BUILD_DIR/bin"
 echo "Building Client…"
 pnpm --dir ./app/client build
 cp -r ./app/client/dist/. "./$BUILD_DIR/$APP_DIR"
+rm -rf "./$BUILD_DIR/$APP_DIR/.vite"
 mkdir -p "./$BUILD_DIR/$APP_DIR/public"
 cp -r ./app/client/public/. "./$BUILD_DIR/$APP_DIR/public"
 mkdir -p "./$BUILD_DIR/.vite"
@@ -186,6 +187,7 @@ cp "$NODE_RUNTIME" "./$BUILD_DIR/bin/$NODE_BIN_NAME"
 # ---------------------------------------------------------------------------
 # 6. Entry point scripts
 # ---------------------------------------------------------------------------
+echo "Creating entrypoint scripts"
 
 cat > "./$BUILD_DIR/run.sh" << 'EOF'
 #!/bin/bash
@@ -199,6 +201,12 @@ cat > "./$BUILD_DIR/run.bat" << 'EOF'
 SET "DIR=%~dp0"
 "%DIR%bin\node.exe" "%DIR%launcher.js" %*
 EOF
+
+# ---------------------------------------------------------------------------
+# 7. Copy Launcher Assets into tmp-build root
+# ---------------------------------------------------------------------------
+echo "Copying Launcher assets"
+cp -r ./app/launcher/assets/. "./$BUILD_DIR"
 
 echo ""
 echo "Done ✨  Output: $BUILD_DIR/"

@@ -13,32 +13,22 @@ const getTemplate = async () => {
     return template;
   }
 
+  // Dynamic import so esbuild inlines the template as text in the bundle;
+  // in dev this code path is never reached (publicRouter is only registered
+  // when IS_PRODUCTION=true) so tsx never needs to resolve the .ejs import.
+  const { default: templateSource } = await import('../templates/main.ejs');
+
   const { css, js, preload } = await parser({
     input: 'src/main.tsx',
     outDir: path.join(__dirname, '..', '.vite'),
   });
 
-  const compiledTemplate = await new Promise<string>((resolve, reject) => {
-    const templateLoc = path.join(__dirname, '..', 'templates', 'main.ejs');
-    ejs.renderFile(
-      templateLoc,
-      {
-        css,
-        js,
-        preload,
-        player: store.settings.player,
-      },
-      (err: Error, str: string) => {
-        if (err) {
-          return reject(err);
-        }
-
-        return resolve(str);
-      },
-    );
+  template = ejs.render(templateSource, {
+    css,
+    js,
+    preload,
+    player: store.settings.player,
   });
-
-  template = compiledTemplate;
 
   return template;
 };

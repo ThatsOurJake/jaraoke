@@ -7,7 +7,7 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('bootstrap:read-karaoke-files');
 
-export const readJaraokeFiles = () => {
+export const readJaraokeFiles = async () => {
   const files: { filePath: string; parentDir: string }[] = fs
     .readdirSync(directories.songs)
     .reduce((acc: { filePath: string; parentDir: string }[], dir) => {
@@ -28,7 +28,7 @@ export const readJaraokeFiles = () => {
   const output: CombinedJaraokeFiles[] = [];
 
   for (const f of files) {
-    const contents = fs.readFileSync(f.filePath).toString();
+    const contents = await fs.promises.readFile(f.filePath, 'utf8');
     const parsed = JSON.parse(contents) as CombinedJaraokeFiles;
     output.push({
       ...parsed,

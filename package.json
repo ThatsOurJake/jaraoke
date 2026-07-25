@@ -3,6 +3,9 @@
   "private": true,
   "packageManager": "pnpm@10.22.0",
   "devDependencies": {
-    "@tauri-apps/cli": "^2.10.0"
+    "concurrently": "10.0.3"
+  },
+  "scripts": {
+    "dev": "concurrently \"pnpm --dir ./app/client dev\" \"pnpm --dir ./app/server dev\""
   }
 }

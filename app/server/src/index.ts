@@ -5,7 +5,7 @@ import mount from 'koa-mount';
 import serve from 'koa-static';
 
 import { bootstrap } from './bootstrap';
-import { IS_PRODUCTION, PORT } from './constants';
+import { HOST, IS_PRODUCTION, PORT } from './constants';
 import { apiRouter } from './routers/api';
 import { publicRouter } from './routers/public';
 import { createLogger } from './utils/logger';
@@ -32,9 +32,18 @@ if (IS_PRODUCTION) {
   app.use(publicRouter.routes()).use(publicRouter.allowedMethods());
 }
 
-app.listen(PORT, () => {
-  logger.info(`Jaraoke backend started on port: ${PORT}`);
-  bootstrap();
+app.listen(PORT, HOST, () => {
+  logger.info(`Jaraoke backend listening on ${HOST}:${PORT}`);
+  // Defer bootstrap so the event loop can serve at least one tick
+  // (e.g. the splash-screen request) before any sync bootstrap work starts.
+  setImmediate(async () => {
+    try {
+      await bootstrap();
+      logger.info('Bootstrap complete — server is ready');
+    } catch (err: unknown) {
+      logger.error({ err }, 'Bootstrap failed');
+    }
+  });
 });
 
 process.on('uncaughtException', (err) => {

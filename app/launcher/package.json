@@ -1,0 +1,17 @@
+{
+  "name": "jaraoke-launcher",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "node ./builder.js"
+  },
+  "dependencies": {
+    "commander": "15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "esbuild": "^0.27.7",
+    "typescript": "catalog:"
+  }
+}

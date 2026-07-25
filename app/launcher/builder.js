@@ -8,9 +8,5 @@ build({
   target: 'node24',
   bundle: true,
   minify: process.env['DEBUG_BUILD'] !== 'true',
-  external: ['pino-pretty'],
   logLevel: 'info',
-  loader: {
-    '.ejs': 'text',
-  },
 }).catch(() => process.exit(1));

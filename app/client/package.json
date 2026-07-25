@@ -22,9 +22,9 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",
-    "@types/node": "^24.6.0",
+    "@types/node": "catalog:",
     "baseline-browser-mapping": "^2.9.19",
-    "typescript": "~5.9.3",
+    "typescript": "catalog:",
     "vite": "^7.1.7"
   }
 }

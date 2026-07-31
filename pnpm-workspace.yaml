@@ -4,6 +4,10 @@ packages:
   - app/shared
   - app/launcher
 
+allowBuilds:
+  core-js: false
+  esbuild: true
+
 catalog:
   "@types/node": "^24.7.0"
   typescript: "~5.9.3"

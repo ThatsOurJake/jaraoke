@@ -43,7 +43,7 @@ importers:
         version: 2.5.1
       jaraoke-shared:
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       preact:
         specifier: ^10.27.2
         version: 10.29.7(preact-render-to-string@6.7.0)
@@ -157,7 +157,7 @@ importers:
         version: 0.27.7
       jaraoke-shared:
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       nodemon:
         specifier: ^3.1.10
         version: 3.1.14
@@ -168,13 +168,11 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
-  app/shared: {}
-
   apps/jaraoke-studio/client:
     dependencies:
       jaraoke-shared:
         specifier: workspace:*
-        version: link:../../../app/shared
+        version: link:../../../packages/shared
       preact:
         specifier: ^10.27.2
         version: 10.29.7(preact-render-to-string@6.7.0)
@@ -202,7 +200,7 @@ importers:
         version: 1.0.0
       jaraoke-shared:
         specifier: workspace:*
-        version: link:../../../app/shared
+        version: link:../../../packages/shared
       koa:
         specifier: ^3.0.1
         version: 3.2.1
@@ -237,6 +235,8 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+
+  packages/shared: {}
 
 packages:
 

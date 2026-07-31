@@ -84,13 +84,13 @@ To test the viewer window during development, build the server first then point 
 
 ```sh
 # terminal 1 — Vite dev server
-pnpm --dir ./app/client dev
+pnpm --dir ./apps/jaraoke/client dev
 
 # terminal 2 — server
-pnpm --dir ./app/server dev
+pnpm --dir ./apps/jaraoke/server dev
 
 # terminal 3 — launcher (opens WRY at Vite)
-SERVER_ENTRY=./app/server/dist/index.js \
+SERVER_ENTRY=./apps/jaraoke/server/dist/index.js \
 VIEWER_BIN=./app/launcher/viewer/target/<target>/release/viewer \
 node ./app/launcher/dist/index.js --url http://localhost:5173
 ```

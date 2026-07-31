@@ -138,21 +138,21 @@ mkdir -p "$BUILD_DIR/bin"
 # ---------------------------------------------------------------------------
 
 echo "Building Client…"
-pnpm --dir ./app/client build
-cp -r ./app/client/dist/. "./$BUILD_DIR/$APP_DIR"
+pnpm --dir ./apps/jaraoke/client build
+cp -r ./apps/jaraoke/client/dist/. "./$BUILD_DIR/$APP_DIR"
 rm -rf "./$BUILD_DIR/$APP_DIR/.vite"
 mkdir -p "./$BUILD_DIR/$APP_DIR/public"
-cp -r ./app/client/public/. "./$BUILD_DIR/$APP_DIR/public"
+cp -r ./apps/jaraoke/client/public/. "./$BUILD_DIR/$APP_DIR/public"
 mkdir -p "./$BUILD_DIR/.vite"
-cp -r ./app/client/dist/.vite/. "./$BUILD_DIR/.vite"
+cp -r ./apps/jaraoke/client/dist/.vite/. "./$BUILD_DIR/.vite"
 
 # ---------------------------------------------------------------------------
 # 2. Build server
 # ---------------------------------------------------------------------------
 
 echo "Building Server…"
-pnpm --dir ./app/server build
-cp -r ./app/server/dist/. "./$BUILD_DIR/$APP_DIR"
+pnpm --dir ./apps/jaraoke/server build
+cp -r ./apps/jaraoke/server/dist/. "./$BUILD_DIR/$APP_DIR"
 
 # ---------------------------------------------------------------------------
 # 3. Build launcher (TypeScript → bundled CommonJS)

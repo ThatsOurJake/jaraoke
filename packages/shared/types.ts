@@ -147,7 +147,7 @@ export interface Settings {
 
 export interface VolumeOverride {
   trackFileName: string;
-  volume: number; // Between 0 and 1
+  volume: number;
 }
 
 export interface PlayPayload {
@@ -167,7 +167,7 @@ export interface JaraokeFileMeta {
   title: string;
   artist?: string;
   year?: string;
-  duration?: number; // Seconds
+  duration?: number;
 }
 
 interface BaseJarokeFIle {

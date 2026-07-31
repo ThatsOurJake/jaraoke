@@ -1,5 +1,5 @@
 {
-  "name": "jaraoke-server",
+  "name": "@jaraoke/jaraoke-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -15,7 +15,7 @@
   "dependencies": {
     "@koa/router": "^14.0.0",
     "appdata-path": "^1.0.0",
-    "ejs": "^4.0.1",
+    "ejs": "^6.0.1",
     "ini": "^5.0.0",
     "koa": "^3.0.1",
     "koa-bodyparser": "^4.4.1",
@@ -28,6 +28,7 @@
     "vite-manifest-parser": "^1.0.1"
   },
   "devDependencies": {
+    "@types/ejs": "^3.1.5",
     "@types/ini": "^4.1.1",
     "@types/koa": "^3.0.0",
     "@types/koa-bodyparser": "^4.3.12",

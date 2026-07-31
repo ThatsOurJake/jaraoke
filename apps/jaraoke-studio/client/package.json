@@ -1,0 +1,21 @@
+{
+  "name": "@jaraoke/studio-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5174",
+    "build": "tsc -b && vite build --base=/public/",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "jaraoke-shared": "workspace:*",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "^7.1.7"
+  }
+}

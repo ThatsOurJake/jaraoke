@@ -2,21 +2,238 @@
 
 <img src="https://github.com/thatsourjake/jaraoke/blob/main/.git-assets/app-icon.png" width="256px" alt="The logo of Jaraoke - A karaoke microphone"></img>
 
-This project aims to be a karaoke player similar to those currently available with the main difference of it being all in 1 solution without the need of a DJ.
+Jaraoke is a local karaoke project built as a pnpm monorepo.
 
-## Usage
-_This section will be filled out soon with the wiki being the source of information, if you're wanting to run the program then follow the building steps_
+It currently contains two app targets:
 
-## Running
+- `jaraoke` — the main karaoke player
+- `jaraoke-studio` — a placeholder studio app used to prove the new split architecture and packaging flow
 
-After building, the output directory (`tmp-build/`) is self-contained. Start Jaraoke with the entry script for your platform:
+Both apps share infrastructure such as the launcher and shared types, but they are packaged and run as separate products.
 
-**macOS / Linux**
+## Workspace layout
+
+```text
+apps/
+  jaraoke/
+    client/
+    server/
+  jaraoke-studio/
+    client/
+    server/
+packages/
+  launcher/
+  shared/
+scripts/
+```
+
+## Development
+
+### Prerequisites
+
+- Biome (2.3.8)
+- Rust compiler (rustc 1.93.0)
+- Node.js v24.9.0
+- pnpm via Corepack
+- ffmpeg and ffprobe
+- mpv if not using the web-based player
+
+### Development commands
+
+From the repo root:
+
+```sh
+# Main karaoke player
+pnpm dev
+```
+
+```sh
+# Explicit jaraoke development flow
+pnpm dev:jaraoke
+```
+
+```sh
+# Placeholder studio development flow
+pnpm dev:studio
+```
+
+Default local ports:
+
+- `jaraoke` server: `9897`
+- `jaraoke` client: Vite default, usually `5173`
+- `jaraoke-studio` server: `9898`
+- `jaraoke-studio` client: `5174`
+
+When `jaraoke` runs for the first time it creates its local app-data directory under `jaraoke-dev`. The generated settings file contains the configured `ffmpeg`, `ffprobe`, and `mpv` paths.
+
+To increase log level:
+
+```sh
+LOG_LEVEL=debug pnpm dev:jaraoke
+```
+
+### Testing the launcher locally
+
+Build the server first, then point the launcher at a running Vite dev server.
+
+```sh
+# terminal 1 — Vite dev server
+pnpm --dir ./apps/jaraoke/client dev
+```
+
+```sh
+# terminal 2 — server
+pnpm --dir ./apps/jaraoke/server dev
+```
+
+```sh
+# terminal 3 — launcher (opens WRY at Vite)
+SERVER_ENTRY=./apps/jaraoke/server/dist/index.js \
+VIEWER_BIN=./packages/launcher/viewer/target/<target>/release/viewer \
+node ./packages/launcher/dist/index.js --url http://localhost:5173
+```
+
+Or skip the viewer entirely with `--no-ui` and use the browser directly.
+
+## Building
+
+### Additional prerequisites
+
+Everything required for development, plus:
+
+- Cargo
+- The Rust cross-compilation target for your chosen platform
+
+#### Installing a Rust target
+
+```sh
+# macOS Apple Silicon
+rustup target add aarch64-apple-darwin
+
+# macOS Intel
+rustup target add x86_64-apple-darwin
+
+# Windows x64
+rustup target add x86_64-pc-windows-msvc
+
+# Linux x64
+rustup target add x86_64-unknown-linux-gnu
+```
+
+> Linux build hosts also need the WebKitGTK development headers to compile the WRY viewer:
+>
+> ```sh
+> # Ubuntu / Debian
+> sudo apt install libwebkit2gtk-4.1-dev
+>
+> # Fedora / RHEL
+> sudo dnf install webkit2gtk4.1-devel
+>
+> # Arch Linux
+> sudo pacman -S webkit2gtk-4.1
+> ```
+
+### Product builds
+
+The root build scripts compile the individual workspace packages:
+
+```sh
+pnpm build:jaraoke
+```
+
+```sh
+pnpm build:studio
+```
+
+### Portable packaged builds
+
+Use the packaging script to create a self-contained runtime bundle for a specific product.
+
+```sh
+sh ./scripts/build.sh --product <jaraoke|jaraoke-studio> --node <node_version> --platform <platform> [--debug true|false]
+```
+
+Arguments:
+
+| Argument | Description |
+|---|---|
+| `--product <name>` | Product to package: `jaraoke` or `jaraoke-studio` |
+| `--node <version>` | Node.js version to bundle, for example `24.9.0` |
+| `--platform <platform>` | Target platform |
+| `--debug true` | Debug build of the WRY viewer; default is `false` |
+
+Supported platforms:
+
+| `--platform` | OS |
+|---|---|
+| `darwin-arm64` | macOS (Apple Silicon) |
+| `darwin-x64` | macOS (Intel) |
+| `win-x64` | Windows x64 |
+| `linux-x64` | Linux x64 |
+
+Examples:
+
+```sh
+sh ./scripts/build.sh --product jaraoke --node 24.9.0 --platform darwin-arm64
+```
+
+```sh
+sh ./scripts/build.sh --product jaraoke-studio --node 24.9.0 --platform darwin-arm64
+```
+
+If your non-interactive shell does not expose `pnpm` or `corepack`, set `PNPM_BIN` explicitly when running the packaging script.
+
+### Packaged output
+
+Each packaged build is written to its own folder:
+
+```text
+tmp-build/
+  jaraoke/
+  jaraoke-studio/
+```
+
+For `jaraoke`, the packaged layout looks like:
+
+```text
+tmp-build/jaraoke/
+  app/
+  .vite/
+  bin/
+    node
+    viewer
+  launcher.js
+  run.sh
+  run.bat
+```
+
+For `jaraoke-studio`, the packaged layout looks like:
+
+```text
+tmp-build/jaraoke-studio/
+  studio-app/
+  bin/
+    node
+    viewer
+  launcher.js
+  run.sh
+  run.bat
+```
+
+All application code is bundled and minified. No `node_modules` directory is included in the packaged output.
+
+## Running packaged builds
+
+After building, change into the product-specific output directory and run the bundled launcher script.
+
+### macOS / Linux
+
 ```
 ./run.sh [options]
 ```
 
-**Windows**
+### Windows
+
 ```
 .\run.bat [options]
 ```
@@ -31,7 +248,8 @@ After building, the output directory (`tmp-build/`) is self-contained. Start Jar
 | `--no-ui` | — | Start the server only, no viewer window |
 | `--url <url>` | — | Override the URL opened in the viewer |
 
-**Examples**
+Examples:
+
 ```sh
 # Standard kiosk launch
 ./run.sh
@@ -54,137 +272,5 @@ The viewer window uses [WRY](https://github.com/tauri-apps/wry) which requires *
 | Arch Linux | `sudo pacman -S webkit2gtk-4.1` |
 
 > On Wayland, ensure `WEBKIT_DISABLE_COMPOSITING_MODE=1` is set if the window fails to render correctly.
-
-## Development
-
-### Prerequisites
-- Biome (2.3.8)
-  - This is installed globally rather than into each of the packages for ease of development
-- Rust Compiler (rustc 1.93.0)
-- NodeJS v24.9.0
-- Pnpm
-- ffmpeg (and ffprobe)
-- mpv (if not using web based player)
-
-### Getting started
-
-The main codebase is preact and koa nodejs api. Both projects can be started using `pnpm dev`, doing this in two terminal tabs will allow you to run both projects at once.
-
-The server will boot on port `9897` and vite usually boots on `5173`. The client is setup to proxy any `/api/*` requests to the backend.
-
-When the project has ran for the first time various files will be created under `jaraoke-dev`, the specific location will be outputted in the console of the api.
-
-If you want to increase log level then you can run `LOG_LEVEL=debug pnpm dev`.
-
-There will be a settings file that is generated in the `jaraoke-dev` directory, this will have the ffmpegPath, mpvPath and ffprobePath, these should be updated if neither of them are on your $PATH. (Note if you're using the player=web then you don't need mpv).
-
-### Testing the launcher locally
-
-To test the viewer window during development, build the server first then point the launcher at an already-running Vite dev server:
-
-```sh
-# terminal 1 — Vite dev server
-pnpm --dir ./app/client dev
-
-# terminal 2 — server
-pnpm --dir ./app/server dev
-
-# terminal 3 — launcher (opens WRY at Vite)
-SERVER_ENTRY=./app/server/dist/index.js \
-VIEWER_BIN=./app/launcher/viewer/target/<target>/release/viewer \
-node ./app/launcher/dist/index.js --url http://localhost:5173
-```
-
-Or skip the viewer entirely with `--no-ui` and use the browser directly.
-
-## Building
-
-### Prerequisites
-
-Everything required for development, plus:
-
-- **Cargo** — ships with the [Rust toolchain](https://rustup.rs)
-- **Rust cross-compilation target** for your chosen platform (see below)
-
-#### Installing a cross-compilation target
-
-```sh
-# macOS Apple Silicon
-rustup target add aarch64-apple-darwin
-
-# macOS Intel
-rustup target add x86_64-apple-darwin
-
-# Windows x64 (requires MSVC linker or cross toolchain)
-rustup target add x86_64-pc-windows-msvc
-
-# Linux x64
-rustup target add x86_64-unknown-linux-gnu
-```
-
-> **Linux build hosts** also need the WebKitGTK development headers to compile the WRY viewer:
-> ```sh
-> # Ubuntu / Debian
-> sudo apt install libwebkit2gtk-4.1-dev
->
-> # Fedora / RHEL
-> sudo dnf install webkit2gtk4.1-devel
->
-> # Arch Linux
-> sudo pacman -S webkit2gtk-4.1
-> ```
-
-### Running the build
-
-```sh
-sh ./scripts/build.sh --node <node_version> --platform <platform> [--debug true|false]
-```
-
-| Argument | Description |
-|---|---|
-| `--node <version>` | Node.js version to bundle (e.g. `24.9.0`) |
-| `--platform <platform>` | Target platform (see table below) |
-| `--debug true` | Debug build of the WRY viewer (default: `false`) |
-
-Supported platforms:
-
-| `--platform` | OS |
-|---|---|
-| `darwin-arm64` | macOS (Apple Silicon) |
-| `darwin-x64` | macOS (Intel) |
-| `win-x64` | Windows x64 |
-| `linux-x64` | Linux x64 |
-
-**Example**
-```sh
-sh ./scripts/build.sh --node 24.9.0 --platform darwin-arm64
-```
-
-### What the build script does
-
-1. Builds the Preact client (`vite build`)
-2. Bundles the Koa server into a single minified file (`esbuild`)
-3. Bundles the Node launcher into a single minified file (`esbuild`)
-4. Compiles the WRY viewer Rust binary (`cargo build --release`)
-5. Downloads and bundles the specified Node.js runtime
-6. Writes `run.sh` / `run.bat` entry scripts
-
-### Output
-
-Once complete, `tmp-build/` contains a self-contained, portable directory:
-
-```
-tmp-build/
-  app/            bundled server (index.js) + client static assets
-  .vite/          Vite manifest (used by server for HTML generation)
-  bin/
-    node          bundled Node.js runtime
-    viewer        WRY viewer binary (viewer.exe on Windows)
-  launcher.js     bundled launcher
-  run.sh          Unix entry script
-  run.bat         Windows entry script
-```
-
-All application code is bundled and minified — no `node_modules` directory is included.
 
 (In the future this will be done via a Docker container).

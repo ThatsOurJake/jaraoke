@@ -2,7 +2,27 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import path from 'node:path';
 import { program } from 'commander';
 
+type ProductName = 'jaraoke' | 'jaraoke-studio';
+
+const PRODUCT_CONFIG: Record<
+  ProductName,
+  {
+    defaultPath: string;
+    serverEntryDir: string;
+  }
+> = {
+  jaraoke: {
+    defaultPath: '/splash',
+    serverEntryDir: 'app',
+  },
+  'jaraoke-studio': {
+    defaultPath: '/studio',
+    serverEntryDir: 'studio-app',
+  },
+};
+
 program
+  .option('--product <product>', 'product to launch', 'jaraoke')
   .option('--host <host>', 'bind host passed to the server', '127.0.0.1')
   .option('--port <port>', 'port the server listens on', '9897')
   .option('--log-level <level>', 'server log level', 'info')
@@ -11,6 +31,7 @@ program
   .parse();
 
 const opts = program.opts<{
+  product: ProductName;
   host: string;
   port: string;
   logLevel: string;
@@ -18,8 +39,11 @@ const opts = program.opts<{
   url?: string;
 }>();
 
+const productConfig = PRODUCT_CONFIG[opts.product] ?? PRODUCT_CONFIG.jaraoke;
+
 const serverEntry =
-  process.env['SERVER_ENTRY'] ?? path.join(__dirname, 'app', 'index.js');
+  process.env['SERVER_ENTRY'] ??
+  path.join(__dirname, productConfig.serverEntryDir, 'index.js');
 const viewerBin =
   process.env['VIEWER_BIN'] ??
   path.join(
@@ -29,7 +53,7 @@ const viewerBin =
   );
 
 const serverUrl = `http://${opts.host}:${opts.port}`;
-const targetUrl = opts.url ?? `${serverUrl}/splash`;
+const targetUrl = opts.url ?? `${serverUrl}${productConfig.defaultPath}`;
 
 let serverProc: ChildProcess | null = null;
 let viewerProc: ChildProcess | null = null;
@@ -57,6 +81,7 @@ serverProc = spawn(process.execPath, [serverEntry], {
   stdio: 'inherit',
   env: {
     ...process.env,
+    APP_PRODUCT: opts.product,
     PORT: opts.port,
     HOST: opts.host,
     LOG_LEVEL: opts.logLevel,
@@ -64,7 +89,7 @@ serverProc = spawn(process.execPath, [serverEntry], {
   },
 });
 
-serverProc.on('exit', (code) => {
+serverProc.on('exit', (code: number | null) => {
   if (!shuttingDown) {
     process.stderr.write(
       `[launcher] Server exited unexpectedly (code ${code ?? 'null'})\n`,
@@ -106,7 +131,7 @@ const launchViewer = (): void => {
     }
   });
 
-  viewerProc.on('error', (err) => {
+  viewerProc.on('error', (err: Error) => {
     process.stderr.write(`[launcher] Failed to start viewer: ${err.message}\n`);
     shutdown(1);
   });

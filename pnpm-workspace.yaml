@@ -1,8 +1,10 @@
 packages:
-  - app/client
-  - app/server
-  - app/shared
-  - app/launcher
+  - apps/jaraoke/client
+  - apps/jaraoke/server
+  - apps/jaraoke-studio/client
+  - apps/jaraoke-studio/server
+  - packages/launcher
+  - packages/shared
 
 allowBuilds:
   core-js: false

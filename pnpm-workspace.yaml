@@ -3,6 +3,8 @@ packages:
   - app/server
   - app/shared
   - app/launcher
+  - apps/jaraoke-studio/client
+  - apps/jaraoke-studio/server
 
 allowBuilds:
   core-js: false

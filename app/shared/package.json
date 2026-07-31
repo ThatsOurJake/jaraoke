@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "exports": {
+    "./types": "./types.ts",
+    "./hello": "./hello.ts"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -1,5 +1,5 @@
 {
-  "name": "jaraoke-server",
+  "name": "@jaraoke/jaraoke-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

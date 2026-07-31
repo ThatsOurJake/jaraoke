@@ -1,5 +1,5 @@
 {
-  "name": "jaraoke-client",
+  "name": "@jaraoke/jaraoke-client",
   "private": true,
   "version": "0.0.0",
   "type": "module",

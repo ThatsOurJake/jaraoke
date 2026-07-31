@@ -101,7 +101,7 @@ fi
 BUILD_DIR="tmp-build"
 APP_DIR="app"
 
-VIEWER_SRC="./app/launcher/viewer"
+VIEWER_SRC="./packages/launcher/viewer"
 VIEWER_BIN_NAME="viewer"
 NODE_BIN_NAME="node"
 if [[ "$PLATFORM" == "win-x64" ]]; then
@@ -159,8 +159,8 @@ cp -r ./apps/jaraoke/server/dist/. "./$BUILD_DIR/$APP_DIR"
 # ---------------------------------------------------------------------------
 
 echo "Building Launcher…"
-pnpm --dir ./app/launcher build
-cp ./app/launcher/dist/index.js "./$BUILD_DIR/launcher.js"
+pnpm --dir ./packages/launcher build
+cp ./packages/launcher/dist/index.js "./$BUILD_DIR/launcher.js"
 
 # ---------------------------------------------------------------------------
 # 4. Build WRY viewer (Rust)
@@ -206,7 +206,7 @@ EOF
 # 7. Copy Launcher Assets into tmp-build root
 # ---------------------------------------------------------------------------
 echo "Copying Launcher assets"
-cp -r ./app/launcher/assets/. "./$BUILD_DIR"
+cp -r ./packages/launcher/assets/. "./$BUILD_DIR"
 
 echo ""
 echo "Done ✨  Output: $BUILD_DIR/"

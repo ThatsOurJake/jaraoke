@@ -91,8 +91,8 @@ pnpm --dir ./apps/jaraoke/server dev
 
 # terminal 3 — launcher (opens WRY at Vite)
 SERVER_ENTRY=./apps/jaraoke/server/dist/index.js \
-VIEWER_BIN=./app/launcher/viewer/target/<target>/release/viewer \
-node ./app/launcher/dist/index.js --url http://localhost:5173
+VIEWER_BIN=./packages/launcher/viewer/target/<target>/release/viewer \
+node ./packages/launcher/dist/index.js --url http://localhost:5173
 ```
 
 Or skip the viewer entirely with `--no-ui` and use the browser directly.

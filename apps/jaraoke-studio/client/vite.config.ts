@@ -12,7 +12,6 @@ export default defineConfig({
     manifest: true,
     copyPublicDir: false,
     rollupOptions: {
-      input: '/src/main.tsx',
       output: {
         manualChunks: (id: string) => {
           if (id.includes('node_modules')) {

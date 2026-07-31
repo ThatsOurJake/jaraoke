@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { CDG_COMBINED_FILE_NAME, directories } from '../../constants';
 import { store } from '../../data/store';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('ffmpeg:stitch-cdg-together');
 

@@ -2,7 +2,7 @@ import fs, { lstatSync } from 'node:fs';
 import path from 'node:path';
 import { IGNORED_FILES, SAFE_DIR_NAME } from '../constants';
 import { cleanDir } from './clean-dir';
-import { createLogger } from './logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 // TODO: make this a setting
 const KEEP_ORIGINAL_FILES = true;

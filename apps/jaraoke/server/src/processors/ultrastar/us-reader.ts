@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 import type { RPartial, UltrastarFile } from 'jaraoke-shared/types';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('ultrastar-reader');
 

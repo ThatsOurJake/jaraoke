@@ -1,9 +1,9 @@
 import pino from 'pino';
-import { IS_PRODUCTION } from '../constants';
+import { isProd } from './is-prod';
 
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  transport: IS_PRODUCTION
+  transport: isProd()
     ? undefined
     : {
         target: 'pino-pretty',

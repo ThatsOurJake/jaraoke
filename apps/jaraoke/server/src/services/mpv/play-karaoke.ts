@@ -7,7 +7,7 @@ import type {
   VolumeOverride,
 } from 'jaraoke-shared/types';
 import { directories } from '../../constants';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { createLavfiStream } from '../ffmpeg/create-lavfi-stream';
 
 let isPlaying = false;

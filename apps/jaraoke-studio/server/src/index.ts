@@ -1,66 +1,23 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import getAppDataPath from 'appdata-path';
 import Router from '@koa/router';
 import Koa from 'koa';
 import serve from 'koa-static';
-import pino from 'pino';
-import {
-  getSharedGreeting,
-  type StudioHealthResponse,
-} from 'jaraoke-shared/hello';
-
-const PORT = parseInt(process.env['PORT'] ?? '9898', 10);
-const HOST = process.env['HOST'] ?? '127.0.0.1';
-const IS_PRODUCTION = process.env['NODE_ENV'] === 'production';
-const APP_NAME = IS_PRODUCTION ? 'jaraoke-studio' : 'jaraoke-studio-dev';
-const rootDir = getAppDataPath(APP_NAME);
-
-const logger = pino({
-  level: process.env['LOG_LEVEL'] ?? 'info',
-  transport: IS_PRODUCTION
-    ? undefined
-    : {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-        },
-      },
-  base: {
-    pid: false,
-  },
-}).child({ name: 'STUDIO' });
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
+import { routeResponseTime } from 'jaraoke-shared/server/middlewares/route-response-time';
+import { isProd } from 'jaraoke-shared/server/utils/is-prod.js';
+import { HOST, PORT } from './constants';
 
 const app = new Koa();
 const router = new Router({ prefix: '/api' });
 
-router.get('/health', (ctx) => {
-  const body: StudioHealthResponse = {
-    product: 'jaraoke-studio',
-    appName: APP_NAME,
-    greeting: getSharedGreeting('jaraoke-studio'),
-    status: 'ok',
-  };
+const logger = createLogger('server');
 
-  ctx.body = body;
-});
-
-router.get('/projects', (ctx) => {
-  ctx.body = {
-    product: 'jaraoke-studio',
-    items: [],
-  };
-});
-
-app.use(async (ctx, next) => {
-  const start = Date.now();
-  await next();
-  logger.info(`${ctx.method} ${ctx.path} ${ctx.status} ${Date.now() - start}ms`);
-});
+app.use(routeResponseTime(logger));
 
 app.use(router.routes()).use(router.allowedMethods());
 
-if (IS_PRODUCTION) {
+if (isProd()) {
   const publicDir = path.join(__dirname, 'public');
   const indexPath = path.join(publicDir, 'index.html');
 
@@ -78,5 +35,10 @@ if (IS_PRODUCTION) {
 
 app.listen(PORT, HOST, () => {
   logger.info(`Jaraoke Studio backend listening on ${HOST}:${PORT}`);
-  logger.info(`Studio app data root: ${rootDir}`);
+});
+
+process.on('uncaughtException', (err) => {
+  if (err) {
+    logger.error({ stack: err.stack }, err.message);
+  }
 });

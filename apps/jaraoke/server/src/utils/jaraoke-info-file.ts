@@ -8,7 +8,7 @@ import type {
   JaraokeFileMeta,
 } from 'jaraoke-shared/types';
 import { INFO_FILE_NAME, VERSIONS } from '../constants';
-import { createLogger } from './logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('jaraoke-info-file');
 

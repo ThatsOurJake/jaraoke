@@ -1,7 +1,7 @@
 import fs, { lstatSync } from 'node:fs';
 import path, { basename, extname } from 'node:path';
 import { directories } from '../constants';
-import { createLogger } from '../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('bootstrap:check-for-individual-files');
 

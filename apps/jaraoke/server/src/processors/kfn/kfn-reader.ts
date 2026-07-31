@@ -3,7 +3,7 @@ import fs, { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { KFNFile, KFNHeader } from 'jaraoke-shared/types';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const BYTES_TO_READ = 4;
 

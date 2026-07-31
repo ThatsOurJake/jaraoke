@@ -3,7 +3,7 @@ import { parse, stringify } from 'ini';
 import type { Settings } from 'jaraoke-shared/types';
 import { SETTINGS_FILE_LOC, VERSIONS } from '../constants';
 import { store } from '../data/store';
-import { createLogger } from '../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('bootstrap:settings-file');
 

@@ -5,7 +5,7 @@ import { directories, LYRICS_FILE_NAME } from '../../constants';
 import { transcodeToMp3 } from '../../services/ffmpeg/transcode-to-mp3';
 import { bufferToBase64 } from '../../utils/image-to-base64';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { moveFiles } from '../../utils/move-files';
 import type { Processor } from '../processor-map';
 import { lrcLyricBuilder } from './lrc-lyrics-builder';

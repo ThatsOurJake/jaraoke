@@ -4,7 +4,7 @@ import { parseFile } from 'music-metadata';
 import { CDG_COMBINED_FILE_NAME, directories } from '../../constants';
 import { stitchCDGTogether } from '../../services/ffmpeg/stitch-cdg-together';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { moveFiles } from '../../utils/move-files';
 import type { Processor } from '../processor-map';
 

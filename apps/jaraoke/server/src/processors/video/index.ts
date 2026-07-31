@@ -5,7 +5,7 @@ import { directories, VIDEO_FILE_NAME } from '../../constants';
 import { probeVideoCodec } from '../../services/ffmpeg/probe-video-codec';
 import { transcodeToMp4 } from '../../services/ffmpeg/transcode-to-mp4';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { moveFiles } from '../../utils/move-files';
 import type { Processor } from '../processor-map';
 

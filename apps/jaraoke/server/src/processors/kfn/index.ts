@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import type { JaraokeTrack, KFNTrack } from 'jaraoke-shared/types';
 import { directories, LYRICS_FILE_NAME } from '../../constants';
 import { probeDuration } from '../../services/ffmpeg/probe-duration';
 import { transcodeToMp3 } from '../../services/ffmpeg/transcode-to-mp3';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
-import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { moveFiles } from '../../utils/move-files';
 import type { Processor } from '../processor-map';
 import { kfnLyricsBuilder } from './kfn-lyrics-builder';

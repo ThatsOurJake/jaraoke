@@ -1,36 +1,24 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import Router from '@koa/router';
-import Koa from 'koa';
-import serve from 'koa-static';
-import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { routeResponseTime } from 'jaraoke-shared/server/middlewares/route-response-time';
-import { isProd } from 'jaraoke-shared/server/utils/is-prod.js';
+import { isProd } from 'jaraoke-shared/server/utils/is-prod';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
+import Koa from 'koa';
+import bodyParser from 'koa-bodyparser';
 import { HOST, PORT } from './constants';
+import { apiRouter } from './routers/api';
+import { publicRouter } from './routers/public';
 
 const app = new Koa();
-const router = new Router({ prefix: '/api' });
 
 const logger = createLogger('server');
 
 app.use(routeResponseTime(logger));
 
-app.use(router.routes()).use(router.allowedMethods());
+app.use(bodyParser());
+app.use(apiRouter.routes()).use(apiRouter.allowedMethods());
 
 if (isProd()) {
-  const publicDir = path.join(__dirname, 'public');
-  const indexPath = path.join(publicDir, 'index.html');
-
-  app.use(serve(publicDir));
-  app.use(async (ctx, next) => {
-    if (ctx.path.startsWith('/api')) {
-      await next();
-      return;
-    }
-
-    ctx.type = 'html';
-    ctx.body = await fs.readFile(indexPath, 'utf8');
-  });
+  logger.info('Env is production - serving public and assets');
+  app.use(publicRouter.routes()).use(publicRouter.allowedMethods());
 }
 
 app.listen(PORT, HOST, () => {

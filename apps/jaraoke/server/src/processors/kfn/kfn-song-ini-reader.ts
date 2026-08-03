@@ -3,8 +3,8 @@ import path from 'node:path';
 import { parse as parseIni } from 'ini';
 
 import type {
-  JaraokeLyricsType,
   KFNTrack,
+  JaraokeLyricsType,
   kfnTrackTypes,
 } from 'jaraoke-shared/types';
 

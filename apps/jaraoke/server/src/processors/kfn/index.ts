@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { JaraokeTrack, KFNTrack } from 'jaraoke-shared/types';
-import { directories, LYRICS_FILE_NAME } from '../../constants';
+import { directories } from '../../constants';
 import { probeDuration } from '../../services/ffmpeg/probe-duration';
 import { transcodeToMp3 } from '../../services/ffmpeg/transcode-to-mp3';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
@@ -60,11 +60,10 @@ export const kfnProcessor: Processor = async (
     }
 
     const tracks = infoFile.getTracks();
-    const lyricsType = infoFile.getLyricsType();
 
     checkAndTranscodeTrack(tracks, directories.temp);
 
-    const lyrics = lyricBuilder.toAss();
+    const lyrics = lyricBuilder.toJaraoke();
     const headers = await reader.getHeader();
 
     let duration = 0;
@@ -99,20 +98,14 @@ export const kfnProcessor: Processor = async (
           duration: Math.floor(duration || 0),
         },
         tracks: mappedTracks,
-        lyrics: LYRICS_FILE_NAME,
-        lyricsType,
+        lyrics,
       },
       directories.temp,
     );
 
-    const lyricsLoc = path.join(directories.temp, LYRICS_FILE_NAME);
-    fs.writeFileSync(lyricsLoc, lyrics);
-    logger.debug(`Saved lyrics @ "${lyricsLoc}"`);
-
     moveFiles(
       [
         ...tracks.map((x) => path.join(directories.temp, x.fileName)),
-        lyricsLoc,
         infoFileLocation,
       ],
       directory,

@@ -1,26 +1,12 @@
 import type {
-  LyricBuilderAssOptions,
+  JaraokeFile,
+  JaraokeLyricsType,
+  LyricDisplayType,
   WithRequired,
 } from 'jaraoke-shared/types';
 import {
-  constructCountdown,
-  createAssLayout,
-  createAssTemplate,
-  createAssTimingFormatter,
-  createDialogueLine,
-  paginateAssLines,
-  renderAssChunk,
-  resolveAssFontSizes,
-} from '../shared';
-import {
-  buildTranslationEventsForPage,
-  getTranslationBaseY,
-  type KfnLyricsSection,
   normalizeSingerName,
-  normalizeTranslationEvents,
   orderEffectDetails,
-  resolveSectionLineCount,
-  type TimedAssLine,
 } from './kfn-lyrics-builder-helpers';
 import {
   type KfnLyricsEffect,
@@ -38,21 +24,32 @@ interface Line {
   group: string;
 }
 
-interface LineTiming extends Line {
+interface SyllableToken {
+  str: string;
+  group: string;
+  wordIndex: number;
+}
+
+interface TimedSyllableToken extends SyllableToken {
   timing: number;
 }
 
-const PAGE_RESET_GAP_MULTIPLIER = 2;
+interface TimedWord {
+  syllables: Array<{
+    str: string;
+    timing: number;
+  }>;
+}
+
 const KFN_TIMING_UNITS_PER_SECOND = 100;
+const KFN_MILLISECONDS_PER_TIMING_UNIT =
+  1000 / KFN_TIMING_UNITS_PER_SECOND;
 const DEFAULT_PADDING_TIMING = 100;
-const DEFAULT_MAX_LINES_ON_SCREEN = 4;
-const DEFAULT_LINE_END_BUFFER = 500;
-const SECTION_LABEL_OFFSET_SCALE = 0.75;
-const DEFAULT_COUNTDOWN_STARTING_NUMBER = 3;
-const MIN_TRANSLATION_BLOCK_GAP = 6;
-const TRANSLATION_BLOCK_GAP_SCALE = 0.35;
-const MIN_TRANSLATION_LEAD_IN = 12;
-const TRANSLATION_LEAD_IN_SCALE = 0.25;
+
+const TOP_ROLE_LABEL = 'Main vocals';
+const BOTTOM_ROLE_LABEL = 'Other vocals';
+const TRANSLATION_ROLE_LABEL = 'Translation';
+const UNKNOWN_ARTIST = 'Unknown artist';
 
 export const kfnLyricsBuilder = (
   opts:
@@ -81,7 +78,8 @@ export const kfnLyricsBuilder = (
     iniReader = kfnSongIniReader({ kfnDirectory });
   }
 
-  const convertTiming = createAssTimingFormatter(KFN_TIMING_UNITS_PER_SECOND);
+  const convertToMilliseconds = (value: number) =>
+    Math.round(value * KFN_MILLISECONDS_PER_TIMING_UNIT);
 
   const getTimings = (eff: KfnLyricsEffect) => {
     return Object.entries(eff)
@@ -125,46 +123,59 @@ export const kfnLyricsBuilder = (
     }, []);
   };
 
-  const getWords = (lines: Line[]) => {
-    return lines
-      .map((x) => ({ str: x.str.replace(/ /g, '# '), group: x.group }))
-      .flatMap((x) => ({ str: x.str.split(/ /g), group: x.group }))
-      .reduce((acc: Line[], current) => {
-        const words = current.str.flatMap((x) => x.split(/\//g));
-        const wordsGroup = words.map((x) => ({
-          str: x.replace('#', ' '),
-          group: current.group,
-        }));
+  const getSyllableTokens = (lines: Line[]) => {
+    return lines.reduce((acc: SyllableToken[], line) => {
+      const words = line.str.split(/\s+/g).filter((word) => word.length > 0);
 
-        acc.push(...wordsGroup);
+      for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+        const syllables = words[wordIndex]
+          .split(/\//g)
+          .map((syllable) => syllable.trim())
+          .filter((syllable) => syllable.length > 0);
 
-        return acc;
-      }, []);
+        for (const syllable of syllables) {
+          acc.push({
+            str: syllable,
+            group: line.group,
+            wordIndex,
+          });
+        }
+      }
+
+      return acc;
+    }, []);
   };
 
-  const applyTimingsToWords = (
-    lines: Line[],
+  const applyTimingsToSyllables = (
+    tokens: SyllableToken[],
     timings: number[],
-  ): LineTiming[] => {
-    return lines.map((l, index) => ({
-      str: l.str,
-      group: l.group,
+  ): TimedSyllableToken[] => {
+    return tokens.map((token, index) => ({
+      str: token.str,
+      group: token.group,
+      wordIndex: token.wordIndex,
       timing: timings[index],
     }));
   };
 
-  const groupLyrics = (lyrics: LineTiming[]): Map<string, LineTiming[]> => {
-    const output = new Map<string, LineTiming[]>();
+  const groupLyrics = (
+    tokens: TimedSyllableToken[],
+  ): Map<string, TimedWord[]> => {
+    const output = new Map<string, TimedWord[]>();
 
-    for (let i = 0; i < lyrics.length; i++) {
-      const { group } = lyrics[i];
-      const existingGroup = output.get(group);
+    for (const token of tokens) {
+      const existingGroup = output.get(token.group) || [];
 
-      if (existingGroup) {
-        existingGroup.push(lyrics[i]);
-      } else {
-        output.set(group, [lyrics[i]]);
+      while (existingGroup.length <= token.wordIndex) {
+        existingGroup.push({ syllables: [] });
       }
+
+      existingGroup[token.wordIndex].syllables.push({
+        str: token.str,
+        timing: token.timing,
+      });
+
+      output.set(token.group, existingGroup);
     }
 
     return output;
@@ -175,304 +186,144 @@ export const kfnLyricsBuilder = (
   const constructLyrics = (eff: KfnLyricsEffect) => {
     const timings = getTimings(eff);
     const lines = getLines(eff);
-    const words = getWords(lines);
+    const syllables = getSyllableTokens(lines);
 
-    if (timings.length !== words.length) {
-      throw new Error(`Timings: ${timings.length} !== Words: ${words.length}`);
+    if (timings.length !== syllables.length) {
+      throw new Error(
+        `Timings: ${timings.length} !== Syllables: ${syllables.length}`,
+      );
     }
 
-    const lyrics = applyTimingsToWords(words, timings);
+    const lyrics = applyTimingsToSyllables(syllables, timings);
 
     return groupLyrics(lyrics);
   };
 
-  const buildLines = (
-    lyrics: Map<string, LineTiming[]>,
+  const buildJaraokeLines = (
+    lyrics: Map<string, TimedWord[]>,
     paddingTiming: number,
-  ): TimedAssLine[] => {
-    const lines: TimedAssLine[] = [];
+  ): JaraokeFile['lyrics'][number]['lines'] => {
+    const lines: JaraokeFile['lyrics'][number]['lines'] = [];
 
-    for (const element of lyrics.values()) {
-      const startingTiming = element[0].timing;
-      const endingTiming =
-        element[element.length - 1].timing ||
-        startingTiming + DEFAULT_LINE_END_BUFFER;
-
-      const paddingStart = startingTiming - paddingTiming;
-      const paddingEnd = endingTiming + paddingTiming;
-      const parts: { start: number; str: string }[] = [];
-
-      for (let i = 0; i < element.length; i++) {
-        const word = element[i];
-        const nextWordTiming = element[i + 1]?.timing || endingTiming;
-
-        const str = word.str.replace(/_/g, ' ');
-
-        const start = nextWordTiming - word.timing;
-        parts.push({
-          start,
-          str,
-        });
-      }
-
-      if (!parts.some((x) => x.str.trim().length > 0)) {
+    for (const wordsInLine of lyrics.values()) {
+      if (wordsInLine.length === 0) {
         continue;
       }
 
-      const lyric = parts.map((x) => `{\\k${x.start}}${x.str}`).join('');
+      const firstTiming = wordsInLine[0]?.syllables[0]?.timing;
+
+      if (typeof firstTiming !== 'number') {
+        continue;
+      }
+
+      const startAtMs = Math.max(
+        0,
+        convertToMilliseconds(firstTiming - paddingTiming),
+      );
+      const words = wordsInLine
+        .map((word) => ({
+          syllables: word.syllables
+            .map((syllable) => ({
+              phrase: syllable.str
+                .replace(/_/g, ' ')
+                .replace(/ {2,}/g, ' ')
+                .trim(),
+              startAtMs: convertToMilliseconds(syllable.timing),
+              effect: 'highlight' as const,
+            }))
+            .filter((syllable) => syllable.phrase.length > 0),
+        }))
+        .filter((word) => word.syllables.length > 0);
+
+      if (words.length === 0) {
+        continue;
+      }
 
       lines.push({
-        start: paddingStart,
-        end: paddingEnd,
-        activeStart: startingTiming,
-        activeEnd: endingTiming,
-        lyric,
+        startAtMs,
+        words,
       });
     }
 
     return lines;
   };
 
-  const createSectionLayout = (
-    sectionIndex: number,
-    sectionCount: number,
-    lineCount: number,
-    height: number,
-    fontSize: number,
-  ) => {
-    const safeLineCount = Math.max(1, lineCount);
-    const sectionHeight = height / sectionCount;
-    const sectionTop = sectionIndex * sectionHeight;
-    const initialStartPos = sectionTop + sectionHeight / (safeLineCount + 1);
-    const positions = Array.from(
-      { length: safeLineCount },
-      (_, index) => initialStartPos + fontSize * index,
-    );
-    const labelY = Math.max(
-      sectionTop + fontSize * SECTION_LABEL_OFFSET_SCALE,
-      positions[0] - fontSize,
-    );
+  const resolveDisplayType = (
+    lyricsType: JaraokeLyricsType,
+    index: number,
+  ): LyricDisplayType => {
+    if (lyricsType === 'duet') {
+      return index === 0 ? 'top' : 'bottom';
+    }
 
-    return {
-      positions,
-      labelY,
-    };
+    if (lyricsType === 'translation') {
+      return index === 0 ? 'top' : 'translation';
+    }
+
+    return 'top';
   };
 
-  const toAss = (options?: LyricBuilderAssOptions) => {
-    const {
-      paddingTiming = DEFAULT_PADDING_TIMING,
-      font = 'IMPACT',
-      fontSize,
-      highlightColours,
-      maxLinesOnScreen = DEFAULT_MAX_LINES_ON_SCREEN,
-      screen,
-    } = options || {};
-    const {
-      personOne: personOneHighlight = '&H00FF00&',
-      personTwo: personTwoHighlight = '&H00A5FF&',
-      translation: translationHighlight = '&H00909090&',
-    } = highlightColours || {};
-    const { lyrics: lyricFontSize, subtitle: subtitleFontSize } =
-      resolveAssFontSizes(fontSize);
-    const { height, centerX, positions } = createAssLayout({
-      fontSize: lyricFontSize,
-      maxLinesOnScreen,
-      screen,
-    });
+  const roleLabelFromDisplayType = (displayType: LyricDisplayType) => {
+    if (displayType === 'top') {
+      return TOP_ROLE_LABEL;
+    }
 
-    const lyricsType = iniReader.getLyricsType();
+    if (displayType === 'bottom') {
+      return BOTTOM_ROLE_LABEL;
+    }
+
+    return TRANSLATION_ROLE_LABEL;
+  };
+
+  const toJaraoke = (): JaraokeFile['lyrics'] => {
     const describedEffects = iniReader.describeLyricsEffects();
-    const syncedEffects = describedEffects.map((details) => details.effect);
-
-    if (syncedEffects.length === 0) {
+    if (describedEffects.length === 0) {
       throw new Error('Could not find lyrics effect in Song.ini');
     }
 
-    const assTemplate = createAssTemplate({ font, fontSize: lyricFontSize });
-
-    const assLines: string[] = [];
-    const pageResetGap = paddingTiming * PAGE_RESET_GAP_MULTIPLIER;
-    const mainSinger = normalizeSingerName(iniReader.getMetadata()?.artist);
+    const lyricsType = iniReader.getLyricsType();
+    const artist = iniReader.getMetadata()?.artist?.trim() || UNKNOWN_ARTIST;
+    const mainSinger = normalizeSingerName(artist);
     const orderedEffects = orderEffectDetails({
       describedEffects,
       lyricsType,
       mainSinger,
     });
-    const sections = orderedEffects.reduce(
-      (acc: KfnLyricsSection[], effectDetails, index) => {
-        const { effect } = effectDetails;
-        const lyrics = constructLyrics(effect);
-        const lines = buildLines(lyrics, paddingTiming);
 
-        if (lines.length === 0) {
-          return acc;
-        }
+    const output: JaraokeFile['lyrics'] = [];
 
-        if (lyricsType !== 'duet') {
-          acc.push({
-            caption: effect.caption,
-            highlightColour: personOneHighlight,
-            lines,
-            positions,
-            labelY: Math.max(lyricFontSize, positions[0] - lyricFontSize),
-          });
+    for (let index = 0; index < orderedEffects.length; index++) {
+      const { effect } = orderedEffects[index];
+      const lyrics = constructLyrics(effect);
+      const lines = buildJaraokeLines(lyrics, DEFAULT_PADDING_TIMING);
 
-          return acc;
-        }
+      if (lines.length === 0) {
+        continue;
+      }
 
-        const lineCount = resolveSectionLineCount(effect, maxLinesOnScreen);
-        const sectionLayout = createSectionLayout(
-          index,
-          orderedEffects.length,
-          lineCount,
-          height,
-          lyricFontSize,
-        );
+      const displayType = resolveDisplayType(lyricsType, index);
+      const roleLabel = roleLabelFromDisplayType(displayType);
+      const caption = effect.caption?.trim();
+      const displayName =
+        caption && caption.length > 0
+          ? caption
+          : `${artist} (${roleLabel})`;
 
-        acc.push({
-          caption: effect.caption,
-          highlightColour:
-            index === 0 ? personOneHighlight : personTwoHighlight,
-          lines,
-          positions: sectionLayout.positions,
-          labelY: sectionLayout.labelY,
-        });
+      output.push({
+        displayName,
+        displayType,
+        lines,
+      });
+    }
 
-        return acc;
-      },
-      [],
-    );
-
-    if (sections.length === 0) {
+    if (output.length === 0) {
       throw new Error('Could not construct lyrics from Song.ini');
     }
 
-    const allLines = sections.flatMap((section) => section.lines);
-    const earliestLineStart = Math.min(...allLines.map((line) => line.start));
-    const latestLineEnd = Math.max(...allLines.map((line) => line.end));
-    const countdownY = height / 2;
-
-    const countdownLines = constructCountdown({
-      firstTiming: earliestLineStart + paddingTiming,
-      startingNumber: DEFAULT_COUNTDOWN_STARTING_NUMBER,
-      paddingTiming,
-      unitsPerSecond: KFN_TIMING_UNITS_PER_SECOND,
-    });
-
-    for (const line of countdownLines) {
-      const prefixTemplate = `{\\pos(${centerX},${countdownY})}`;
-      const formattedLine = createDialogueLine({
-        start: line.start,
-        end: line.end,
-        lyric: line.lyric,
-        style: line.style,
-        prefix: prefixTemplate,
-        formatTiming: convertTiming,
-      });
-      assLines.push(formattedLine);
-    }
-
-    if (lyricsType === 'duet') {
-      for (const section of sections) {
-        if (section.caption) {
-          const captionPrefix = `{\\fs${subtitleFontSize}\\b1\\1c${section.highlightColour}\\pos(${centerX},${section.labelY})}`;
-          assLines.push(
-            createDialogueLine({
-              start: earliestLineStart,
-              end: latestLineEnd,
-              lyric: section.caption,
-              prefix: captionPrefix,
-              formatTiming: convertTiming,
-            }),
-          );
-        }
-      }
-    }
-
-    const translationBlockGap = Math.max(
-      MIN_TRANSLATION_BLOCK_GAP,
-      Math.round(subtitleFontSize * TRANSLATION_BLOCK_GAP_SCALE),
-    );
-    const translationLeadIn = Math.min(
-      paddingTiming,
-      Math.max(
-        MIN_TRANSLATION_LEAD_IN,
-        Math.round(paddingTiming * TRANSLATION_LEAD_IN_SCALE),
-      ),
-    );
-    const translationBaseY = getTranslationBaseY({
-      firstVisiblePos: positions[0],
-      lyricFontSize,
-      subtitleFontSize,
-      translationBlockGap,
-    });
-
-    const renderSectionPages = (section: KfnLyricsSection) => {
-      const highlightTemplate = `\\r\\1c${section.highlightColour}`;
-
-      return paginateAssLines({
-        lines: section.lines,
-        pageSize: section.positions.length,
-        shouldStartNewPage: (previousLine, nextLine) =>
-          nextLine.activeStart - previousLine.activeEnd > pageResetGap,
-      }).map((chunk) => {
-        assLines.push(
-          ...renderAssChunk({
-            chunk,
-            positions: section.positions,
-            formatTiming: convertTiming,
-            getWindow: (line) =>
-              line
-                ? {
-                    start: line.start,
-                    end: line.end,
-                  }
-                : null,
-            createPrefix: ({ pos }) =>
-              `{\\k${paddingTiming}${highlightTemplate}\\pos(${centerX},${pos})}`,
-          }),
-        );
-
-        return chunk;
-      });
-    };
-
-    if (lyricsType === 'translation') {
-      const [primarySection, ...translationSections] = sections;
-      const primaryPages = renderSectionPages(primarySection);
-      const translationEvents = primaryPages.flatMap((chunk) =>
-        buildTranslationEventsForPage({
-          chunk,
-          translationSections,
-          translationLeadIn,
-        }),
-      );
-      const normalizedTranslationEvents =
-        normalizeTranslationEvents(translationEvents);
-      const translationPrefix = `{\\fs${subtitleFontSize}\\1c${translationHighlight}\\pos(${centerX},${translationBaseY})}`;
-
-      for (const event of normalizedTranslationEvents) {
-        assLines.push(
-          createDialogueLine({
-            start: event.start,
-            end: event.end,
-            lyric: event.lyric,
-            prefix: translationPrefix,
-            formatTiming: convertTiming,
-          }),
-        );
-      }
-    } else {
-      for (const section of sections) {
-        renderSectionPages(section);
-      }
-    }
-
-    return `${assTemplate}${assLines.join('\n')}`;
+    return output;
   };
 
   return {
-    toAss,
+    toJaraoke,
   };
 };

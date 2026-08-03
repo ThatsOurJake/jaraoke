@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseFile, selectCover } from 'music-metadata';
-import { directories, LYRICS_FILE_NAME } from '../../constants';
+import { directories } from '../../constants';
 import { transcodeToMp3 } from '../../services/ffmpeg/transcode-to-mp3';
 import { bufferToBase64 } from '../../utils/image-to-base64';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
@@ -50,10 +50,8 @@ export const lrcProcessor: Processor = async (
   const fullLrcPath = path.join(directory, lrcFile);
   const fullAudioPath = path.join(directory, audioFileName);
 
-  const destLRCFile = path.join(directories.temp, lrcFile);
   const destAudioFile = path.join(directories.temp, audioFileName);
 
-  fs.cpSync(fullLrcPath, destLRCFile);
   fs.cpSync(fullAudioPath, destAudioFile);
 
   try {
@@ -67,7 +65,7 @@ export const lrcProcessor: Processor = async (
       lrcFile: fullLrcPath,
     });
 
-    const lyrics = lyricsBuilder.toAss();
+    const lyrics = lyricsBuilder.toJaraoke();
 
     const infoFileLocation = createJaraokeInfoFile(
       {
@@ -84,7 +82,7 @@ export const lrcProcessor: Processor = async (
             isToggleable: false,
           },
         ],
-        lyrics: LYRICS_FILE_NAME,
+        lyrics,
         coverPhoto: albumCover
           ? bufferToBase64(albumCover.data, albumCover.format)
           : undefined,
@@ -92,11 +90,7 @@ export const lrcProcessor: Processor = async (
       directories.temp,
     );
 
-    const lyricsLoc = path.join(directories.temp, LYRICS_FILE_NAME);
-    fs.writeFileSync(lyricsLoc, lyrics);
-    logger.debug(`Saved lyrics @ "${lyricsLoc}"`);
-
-    moveFiles([destAudioFile, lyricsLoc, infoFileLocation], directory);
+    moveFiles([destAudioFile, infoFileLocation], directory);
   } catch (err) {
     const error = err as Error;
     logger.error(

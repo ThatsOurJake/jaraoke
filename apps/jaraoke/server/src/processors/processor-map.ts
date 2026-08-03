@@ -5,7 +5,10 @@ import { lrcProcessor } from './lrc';
 import { ultastarProcessor } from './ultrastar';
 import { videoProcessor } from './video';
 
-export type Processor = (directory: string) => Promise<void>;
+export type Processor = (
+  directory: string,
+  reimportId?: string,
+) => Promise<void>;
 export type Noop = () => void;
 
 const noop = () => {};

@@ -1,21 +1,30 @@
 import fs, { createReadStream } from 'node:fs';
 import path from 'node:path';
 import Router from '@koa/router';
-
-import { directories, VERSIONS } from '../constants';
+import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
+import { directories } from '../constants';
 import { store } from '../data/store';
+import { createLogger } from '../utils/logger';
 import { fileExtToMimeTypes } from '../utils/mime-type';
-import { isJaraokeVersionCompat } from '../utils/is-jaraoke-version-compat';
+import { reprocessSong } from '../utils/song-dir-processor';
 
 export const apiRouter = new Router({
   prefix: '/api',
 });
 
+const logger = createLogger('api-router');
+
 apiRouter.get('/songs', (ctx) => {
+  const { includeIncompatible = 'false' } = ctx.query;
   // TODO: Sort method
   const output = store.karaokeFiles.sort((a, b) =>
-    a.metadata.title.localeCompare(b.metadata.title)
-  ).filter(x => isJaraokeVersionCompat(x.version));
+    a.metadata.title.localeCompare(b.metadata.title),
+  );
+
+  if (includeIncompatible !== 'true') {
+    ctx.body = output.filter((x) => x.isCompatibleWithCurrentVersion);
+    return;
+  }
 
   ctx.body = output;
 });
@@ -49,10 +58,20 @@ apiRouter.get('/song/:id/:fileName', (ctx) => {
     return;
   }
 
-  const songDir = path.join(directories.songs, song.parentDir!);
+  if (!song.parentDir) {
+    ctx.status = 400;
+    ctx.body = {
+      errors: ['Parent directory is not present in the store'],
+    };
+
+    return;
+  }
+
+  const songDir = path.join(directories.songs, song.parentDir);
   const filePath = path.join(songDir, fileName);
 
   if (!fs.existsSync(filePath)) {
+    logger.debug(`/song/id/filename: Could not find path: ${filePath}`);
     ctx.status = 404;
     ctx.body = {
       errors: ['File Path does not exist'],
@@ -85,6 +104,35 @@ apiRouter.get('/song/:id/:fileName', (ctx) => {
     ctx.set('Content-Length', fileSize.toString());
     ctx.body = createReadStream(filePath);
   }
+});
+
+apiRouter.put('/song/:id/reimport', async (ctx) => {
+  const { id } = ctx.params;
+  const song = store.karaokeFiles.find((x) => x.id === id);
+
+  if (!id || !song) {
+    ctx.status = 404;
+    ctx.body = {
+      errors: ['Song is not found with that that id'],
+    };
+
+    return;
+  }
+
+  const { parentDir } = song;
+
+  if (!parentDir) {
+    ctx.status = 400;
+    ctx.body = {
+      errors: ['Parent directory is not present in the store'],
+    };
+
+    return;
+  }
+
+  ctx.status = 202;
+
+  reprocessSong(song as Required<CombinedJaraokeFiles>);
 });
 
 apiRouter.get('/health', (ctx) => {

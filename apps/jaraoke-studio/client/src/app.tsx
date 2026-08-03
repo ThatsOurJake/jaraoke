@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'preact/hooks';
 import {
   getSharedGreeting,
   type StudioHealthResponse,
 } from 'jaraoke-shared/hello';
+import { useEffect, useState } from 'preact/hooks';
 
 export const App = () => {
   const [health, setHealth] = useState<StudioHealthResponse | null>(null);
@@ -29,16 +29,16 @@ export const App = () => {
   }, []);
 
   return (
-    <main class="studio-shell">
-      <section class="studio-card">
-        <p class="studio-eyebrow">Jaraoke Monorepo Migration</p>
+    <main className="studio-shell">
+      <section className="studio-card">
+        <p className="studio-eyebrow">Jaraoke Monorepo Migration</p>
         <h1>Jaraoke Studio</h1>
-        <p class="studio-copy">
+        <p className="studio-copy">
           This is the placeholder studio app shell. The full authoring workflow
           comes later; this only proves the split, launcher wiring, and shared
           package access.
         </p>
-        <dl class="studio-status-list">
+        <dl className="studio-status-list">
           <div>
             <dt>Shared helper</dt>
             <dd>{getSharedGreeting('jaraoke-studio client')}</dd>
@@ -52,7 +52,7 @@ export const App = () => {
             <dd>{health?.appName ?? 'pending'}</dd>
           </div>
         </dl>
-        {errorMessage ? <p class="studio-error">{errorMessage}</p> : null}
+        {errorMessage ? <p className="studio-error">{errorMessage}</p> : null}
       </section>
     </main>
   );

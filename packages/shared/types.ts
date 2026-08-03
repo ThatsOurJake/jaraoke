@@ -114,7 +114,8 @@ export interface UltrastarFile {
 export interface Settings {
   ffmpegPath: string;
   ffprobePath: string;
-  version: string;
+  keepOriginalFiles: boolean;
+  version: number;
 }
 
 export interface VolumeOverride {
@@ -144,8 +145,10 @@ interface BaseJarokeFIle {
   metadata: JaraokeFileMeta;
   version: number;
   id: string;
+  hash: string;
   coverPhoto?: string;
   parentDir?: string;
+  isCompatibleWithCurrentVersion: boolean;
 }
 
 export type LyricDisplayType = 'top' | 'bottom' | 'translation';

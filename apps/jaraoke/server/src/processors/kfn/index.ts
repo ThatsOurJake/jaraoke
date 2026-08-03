@@ -14,7 +14,7 @@ import { kfnSongIniReader } from './kfn-song-ini-reader';
 
 const logger = createLogger('kfn-processor');
 
-const checkAndTranscodeTrack = (tracks: KFNTrack[], rootDir: string) => {
+const checkAndTranscodeTrack = async (tracks: KFNTrack[], rootDir: string) => {
   for (const track of tracks) {
     if (track.fileName.endsWith('mp3')) {
       continue;
@@ -23,13 +23,14 @@ const checkAndTranscodeTrack = (tracks: KFNTrack[], rootDir: string) => {
     const { fileName } = track;
     const fullAudioPath = path.join(rootDir, fileName);
 
-    const { filename: newFileName } = transcodeToMp3(fullAudioPath);
+    const { filename: newFileName } = await transcodeToMp3(fullAudioPath);
     track.fileName = newFileName;
   }
 };
 
 export const kfnProcessor: Processor = async (
   directory: string,
+  reimportId?: string,
 ): Promise<void> => {
   logger.info(`Processing: "${directory}" as a Karafun type`);
   const files = fs.readdirSync(directory);
@@ -62,7 +63,7 @@ export const kfnProcessor: Processor = async (
     const tracks = infoFile.getTracks();
     const lyricsType = infoFile.getLyricsType();
 
-    checkAndTranscodeTrack(tracks, directories.temp);
+    await checkAndTranscodeTrack(tracks, directories.temp);
 
     const lyrics = lyricBuilder.toJaraoke();
     const headers = await reader.getHeader();
@@ -103,6 +104,7 @@ export const kfnProcessor: Processor = async (
         lyrics,
       },
       directories.temp,
+      reimportId,
     );
 
     moveFiles(

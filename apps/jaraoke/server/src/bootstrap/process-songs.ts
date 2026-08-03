@@ -1,13 +1,13 @@
 import fs, { lstatSync } from 'node:fs';
 import path from 'node:path';
 import { directories, INFO_FILE_NAME } from '../constants';
-import { PROCESSOR_MAP } from '../processors/processor-map';
-import { cleanDir } from '../utils/clean-dir';
-import {
-  determineFolderType,
-  FolderType,
-} from '../utils/determine-folder-type';
+import type { FolderType } from '../utils/determine-folder-type';
 import { createLogger } from '../utils/logger';
+import {
+  determineIfCanBeProcessed,
+  isToBeProcessedResult,
+  processSongDirectory,
+} from '../utils/song-dir-processor';
 
 interface ReadDirectoriesResult {
   toBeProcessed: { dir: string; type: FolderType }[];
@@ -28,21 +28,13 @@ const readDirectories = (songDirectories: string[]): ReadDirectoriesResult => {
       continue;
     }
 
-    const folderType = determineFolderType(dir);
+    const result = determineIfCanBeProcessed(dir);
 
-    if (folderType === FolderType.NOT_SUPPORTED) {
-      output.cannotBeProcessed.push({
-        dir,
-        reason: 'Not supported', // TODO: better reasoning
-      });
-
-      continue;
+    if (isToBeProcessedResult(result)) {
+      output.toBeProcessed.push(result);
+    } else {
+      output.cannotBeProcessed.push(result);
     }
-
-    output.toBeProcessed.push({
-      dir,
-      type: folderType,
-    });
   }
 
   return output;
@@ -62,10 +54,6 @@ export const processSongs = async () => {
   }
 
   for (const item of toBeProcessed) {
-    const processorFunc = PROCESSOR_MAP[item.type];
-
-    await processorFunc(item.dir);
-
-    cleanDir(directories.temp);
+    await processSongDirectory(item);
   }
 };

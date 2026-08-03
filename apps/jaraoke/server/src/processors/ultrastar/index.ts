@@ -17,6 +17,7 @@ const logger = createLogger('us-processor');
 
 export const ultastarProcessor: Processor = async (
   directory: string,
+  reimportId?: string,
 ): Promise<void> => {
   logger.info(`Processing: "${directory}" as a Ultrastar type`);
   const files = fs.readdirSync(directory);
@@ -68,6 +69,7 @@ export const ultastarProcessor: Processor = async (
           : undefined,
       },
       directories.temp,
+      reimportId,
     );
 
     moveFiles([destUsAudioFile, infoFileLocation], directory);

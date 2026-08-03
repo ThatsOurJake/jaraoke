@@ -4,7 +4,7 @@ import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
 import { directories, INFO_FILE_NAME, VERSIONS } from '../constants';
 import { store } from '../data/store';
 import { createLogger } from '../utils/logger';
-import { isJaraokeVersionCompat } from '../utils/is-jaraoke-version-compat';
+import { readJaraokeFile } from '../utils/read-jaraoke-file';
 
 const logger = createLogger('bootstrap:read-karaoke-files');
 
@@ -29,16 +29,15 @@ export const readJaraokeFiles = async () => {
   const output: CombinedJaraokeFiles[] = [];
 
   for (const f of files) {
-    const contents = await fs.promises.readFile(f.filePath, 'utf8');
-    const parsed = JSON.parse(contents) as CombinedJaraokeFiles;
-    output.push({
-      ...parsed,
-      parentDir: f.parentDir,
-    });
+    const res = await readJaraokeFile(f.filePath, f.parentDir);
 
-    if (!isJaraokeVersionCompat(parsed.version)) {
-      logger.warn(`Parsed ${f.filePath} is on version ${parsed.version} and incompatible with the current version ${VERSIONS.jaraokeInfo}`);
+    if (!res.isCompatibleWithCurrentVersion) {
+      logger.warn(
+        `Parsed ${f.filePath} is on version ${res.version} and incompatible with the current version ${VERSIONS.jaraokeInfo}`,
+      );
     }
+
+    output.push(res);
   }
 
   logger.debug(`Parsed ${output.length} Jaraoke files`);

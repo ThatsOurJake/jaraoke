@@ -22,6 +22,7 @@ export const findSupportedVideo = (files: string[]) =>
 
 export const videoProcessor: Processor = async (
   directory: string,
+  reimportId?: string,
 ): Promise<void> => {
   logger.info(`Processing: ${directory} as a Video type`);
 
@@ -73,6 +74,7 @@ export const videoProcessor: Processor = async (
       video: VIDEO_FILE_NAME,
     },
     directories.temp,
+    reimportId,
   );
 
   moveFiles([infoFileLocation, tempLoc], directory);

@@ -12,20 +12,24 @@ import { lrcLyricBuilder } from './lrc-lyrics-builder';
 
 const logger = createLogger('lrc-processor');
 
-export const checkAndTranscodeTrack = (audioFile: string, rootDir: string) => {
+export const checkAndTranscodeTrack = async (
+  audioFile: string,
+  rootDir: string,
+) => {
   if (audioFile.endsWith('mp3')) {
     return { result: false };
   }
 
   const fullAudioPath = path.join(rootDir, audioFile);
 
-  const { filename: newFileName } = transcodeToMp3(fullAudioPath);
+  const { filename: newFileName } = await transcodeToMp3(fullAudioPath);
 
   return { result: true, newFileName };
 };
 
 export const lrcProcessor: Processor = async (
   directory: string,
+  reimportId?: string,
 ): Promise<void> => {
   logger.info(`Processing: "${directory}" as LRC type`);
   const files = fs.readdirSync(directory);
@@ -41,7 +45,7 @@ export const lrcProcessor: Processor = async (
     return;
   }
 
-  const { result: hadToTranscode, newFileName } = checkAndTranscodeTrack(
+  const { result: hadToTranscode, newFileName } = await checkAndTranscodeTrack(
     audioFile,
     directory,
   );
@@ -89,6 +93,7 @@ export const lrcProcessor: Processor = async (
           : undefined,
       },
       directories.temp,
+      reimportId,
     );
 
     moveFiles([destAudioFile, infoFileLocation], directory);

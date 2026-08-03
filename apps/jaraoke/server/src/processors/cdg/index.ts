@@ -12,6 +12,7 @@ const logger = createLogger('cdg-processor');
 
 export const cdgProcessor: Processor = async (
   directory: string,
+  reimportId?: string,
 ): Promise<void> => {
   logger.info(`Processing: "${directory}" as a CDG type`);
 
@@ -27,7 +28,10 @@ export const cdgProcessor: Processor = async (
     return;
   }
 
-  stitchCDGTogether(path.join(directory, audio), path.join(directory, video));
+  await stitchCDGTogether(
+    path.join(directory, audio),
+    path.join(directory, video),
+  );
 
   const fileMetaData = await parseFile(path.join(directory, audio));
   const {
@@ -46,6 +50,7 @@ export const cdgProcessor: Processor = async (
       video: CDG_COMBINED_FILE_NAME,
     },
     directories.temp,
+    reimportId,
   );
 
   moveFiles(

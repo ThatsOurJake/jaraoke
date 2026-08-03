@@ -19,9 +19,16 @@ const idHash = (metadata: JaraokeFileMeta) => {
 
 export const createJaraokeInfoFile = (
   details:
-    | Omit<JaraokeFile, 'version' | 'id'>
-    | Omit<JaraokeCDGFile, 'version' | 'id'>,
+    | Omit<
+        JaraokeFile,
+        'version' | 'id' | 'isCompatibleWithCurrentVersion' | 'hash'
+      >
+    | Omit<
+        JaraokeCDGFile,
+        'version' | 'id' | 'isCompatibleWithCurrentVersion' | 'hash'
+      >,
   directory: string,
+  reimportId?: string,
 ) => {
   if (!fs.existsSync(directory)) {
     throw new Error(
@@ -31,8 +38,10 @@ export const createJaraokeInfoFile = (
 
   const data: CombinedJaraokeFiles = {
     ...details,
-    id: idHash(details.metadata),
+    id: reimportId || crypto.randomUUID(),
+    hash: idHash(details.metadata),
     version: VERSIONS.jaraokeInfo,
+    isCompatibleWithCurrentVersion: true,
   };
 
   const output = path.join(directory, INFO_FILE_NAME);

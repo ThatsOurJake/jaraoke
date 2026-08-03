@@ -57,8 +57,10 @@ export const ultastarProcessor: Processor = async (
           {
             fileName: US_TEMP_AUDIO_FILE,
             name: 'main',
+            isToggleable: false,
           },
         ],
+        lyricsType: 'single',
         lyrics,
         coverPhoto: cover
           ? imageToBase64(path.join(directory, cover))

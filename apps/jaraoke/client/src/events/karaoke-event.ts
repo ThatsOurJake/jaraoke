@@ -1,6 +1,6 @@
 import { KARAOKE_EVENT } from '../constants';
 
-type KaraokeEventTypes = 'pause' | 'play' | 'start';
+type KaraokeEventTypes = 'pause' | 'play' | 'start' | 'song-start';
 
 export class KaraokeEvent extends Event {
   public eventType: KaraokeEventTypes;

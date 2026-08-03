@@ -17,13 +17,16 @@ export const MainPlayer = ({
   song,
   trackVolumes,
 }: MainPlayerProps) => {
-  const { lyrics, tracks, id: songId } = song;
+  const {
+    lyrics,
+    tracks,
+    metadata,
+    id: songId,
+  } = song;
   const loadedRef = useRef<{ audio: boolean; lyrics: boolean }>({
     audio: false,
     lyrics: false,
   });
-
-  const lyricsUrl = constructFileUrl(songId, lyrics);
   const audioTracks = tracks.map((x) => ({
     ...x,
     volume:
@@ -63,7 +66,11 @@ export const MainPlayer = ({
   return (
     <PlayerWrapper onPause={onPause} onPlay={onPlay}>
       <AudioVisualiser tracks={audioTracks} onLoaded={onAudioLoaded} />
-      <LyricsVisualiser url={lyricsUrl} onLoaded={onLyricsLoaded} />
+      <LyricsVisualiser
+        lyrics={lyrics}
+        metadata={metadata}
+        onLoaded={onLyricsLoaded}
+      />
     </PlayerWrapper>
   );
 };

@@ -114,8 +114,6 @@ export interface UltrastarFile {
 export interface Settings {
   ffmpegPath: string;
   ffprobePath: string;
-  mpvPath: string;
-  player: 'mpv' | 'web';
   version: string;
 }
 
@@ -160,6 +158,8 @@ export interface LyricSyllable {
   phrase: string;
   // When should this phrase highlight (be sung)
   startAtMs: number;
+  // Optional duration for long-sustain effects like left-to-right fill.
+  durationMs?: number;
   effect: PhraseEffect;
 }
 
@@ -181,6 +181,7 @@ export interface Lyric {
 
 export interface JaraokeFile extends BaseJarokeFIle {
   tracks: JaraokeTrack[];
+  lyricsType: JaraokeLyricsType;
   lyrics: Lyric[];
 }
 

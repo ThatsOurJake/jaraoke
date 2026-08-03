@@ -60,6 +60,7 @@ export const kfnProcessor: Processor = async (
     }
 
     const tracks = infoFile.getTracks();
+    const lyricsType = infoFile.getLyricsType();
 
     checkAndTranscodeTrack(tracks, directories.temp);
 
@@ -98,6 +99,7 @@ export const kfnProcessor: Processor = async (
           duration: Math.floor(duration || 0),
         },
         tracks: mappedTracks,
+        lyricsType,
         lyrics,
       },
       directories.temp,

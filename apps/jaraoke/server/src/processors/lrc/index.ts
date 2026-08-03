@@ -82,6 +82,7 @@ export const lrcProcessor: Processor = async (
             isToggleable: false,
           },
         ],
+        lyricsType: 'single',
         lyrics,
         coverPhoto: albumCover
           ? bufferToBase64(albumCover.data, albumCover.format)

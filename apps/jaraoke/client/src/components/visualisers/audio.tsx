@@ -1,10 +1,18 @@
 import butterchurn, { type Visualizer } from 'butterchurn';
 import butterchurnPresets from 'butterchurn-presets';
 import type { JaraokeTrack } from 'jaraoke-shared/types';
-import { type Attributes, h, type VNode } from 'preact';
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef } from 'preact/hooks';
 
-import { BT_PRESETS, KARAOKE_EVENT } from '../../constants';
+import {
+  AUDIO_SYNC_HARD_DRIFT_MS,
+  AUDIO_SYNC_INTERVAL_MS,
+  AUDIO_SYNC_RATE_GAIN,
+  AUDIO_SYNC_RATE_MAX,
+  AUDIO_SYNC_RATE_MIN,
+  AUDIO_SYNC_SOFT_DRIFT_MS,
+  BT_PRESETS,
+  KARAOKE_EVENT,
+} from '../../constants';
 import type { KaraokeEvent } from '../../events/karaoke-event';
 import { generateRandomNumber } from '../../utils/rng';
 
@@ -25,44 +33,110 @@ const getPreset = () => {
 
 export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
   const frameId = useRef<number>(null);
+  const syncTimerId = useRef<number>(null);
   const visualiser = useRef<Visualizer>(null);
-  const [audioSources, setAudioSources] =
-    useState<
-      VNode<
-        Attributes & {
-          src: string;
-          id: string;
-          volume: number;
-        }
-      >[]
-    >();
+  const songStarted = useRef(false);
+  const audioContextRef = useRef<AudioContext>(null);
+
+  const clamp = (value: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, value));
+
+  const getAudioTracks = () => Array.from(document.querySelectorAll('audio'));
+
+  const stopVisualFrame = () => {
+    if (frameId.current !== null) {
+      cancelAnimationFrame(frameId.current);
+      frameId.current = null;
+    }
+  };
+
+  const stopSyncLoop = () => {
+    if (syncTimerId.current !== null) {
+      clearInterval(syncTimerId.current);
+      syncTimerId.current = null;
+    }
+  };
+
+  const syncAudioTracks = () => {
+    const masterTrack = document.getElementById('main-audio') as
+      | HTMLAudioElement
+      | null;
+
+    if (!masterTrack || masterTrack.paused) {
+      return;
+    }
+
+    const allTracks = getAudioTracks();
+
+    for (const track of allTracks) {
+      if (track === masterTrack) {
+        continue;
+      }
+
+      const driftMs = (track.currentTime - masterTrack.currentTime) * 1000;
+      const absoluteDrift = Math.abs(driftMs);
+
+      if (absoluteDrift > AUDIO_SYNC_HARD_DRIFT_MS) {
+        track.currentTime = masterTrack.currentTime;
+        track.playbackRate = 1;
+        continue;
+      }
+
+      if (absoluteDrift > AUDIO_SYNC_SOFT_DRIFT_MS) {
+        const driftSeconds = driftMs / 1000;
+        const correction = clamp(
+          driftSeconds * AUDIO_SYNC_RATE_GAIN,
+          -(1 - AUDIO_SYNC_RATE_MIN),
+          AUDIO_SYNC_RATE_MAX - 1,
+        );
+
+        track.playbackRate = clamp(
+          1 - correction,
+          AUDIO_SYNC_RATE_MIN,
+          AUDIO_SYNC_RATE_MAX,
+        );
+      } else {
+        track.playbackRate = 1;
+      }
+    }
+  };
+
+  const startSyncLoop = () => {
+    if (syncTimerId.current !== null) {
+      return;
+    }
+
+    syncTimerId.current = window.setInterval(
+      syncAudioTracks,
+      AUDIO_SYNC_INTERVAL_MS,
+    );
+  };
 
   const playAudio = useCallback(() => {
-    const tracks = document.querySelectorAll('audio');
+    const audioTracks = getAudioTracks();
+    audioContextRef.current?.resume();
 
-    for (const track of tracks) {
-      track.play();
+    for (const track of audioTracks) {
+      void track.play();
     }
   }, []);
 
   const pauseAudio = useCallback(() => {
-    const tracks = document.querySelectorAll('audio');
+    const audioTracks = getAudioTracks();
 
-    for (const track of tracks) {
+    for (const track of audioTracks) {
       track.pause();
+      track.playbackRate = 1;
     }
   }, []);
 
-  const onKaraokeEvent = useCallback((ev: Event) => {
-    const event = ev as KaraokeEvent;
+  const resetAudio = useCallback(() => {
+    const audioTracks = getAudioTracks();
 
-    if (event.eventType === 'play' || event.eventType === 'start') {
-      playAudio();
-      renderFrame();
-    }
-
-    if (event.eventType === 'pause') {
-      pauseAudio();
+    for (const track of audioTracks) {
+      track.pause();
+      track.currentTime = 0;
+      track.playbackRate = 1;
     }
   }, []);
 
@@ -70,6 +144,59 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
     frameId.current = requestAnimationFrame(renderFrame);
     visualiser.current?.render();
   };
+
+  const startVisualFrame = () => {
+    if (frameId.current !== null) {
+      return;
+    }
+
+    frameId.current = requestAnimationFrame(renderFrame);
+  };
+
+  const startSongPlayback = useCallback(() => {
+    songStarted.current = true;
+    playAudio();
+    startVisualFrame();
+    startSyncLoop();
+  }, [playAudio]);
+
+  const prepareForSequenceStart = useCallback(() => {
+    songStarted.current = false;
+    stopVisualFrame();
+    stopSyncLoop();
+    resetAudio();
+  }, [resetAudio]);
+
+  const onKaraokeEvent = useCallback((ev: Event) => {
+    const event = ev as KaraokeEvent;
+
+    if (event.eventType === 'start') {
+      prepareForSequenceStart();
+      return;
+    }
+
+    if (event.eventType === 'song-start') {
+      startSongPlayback();
+      return;
+    }
+
+    if (event.eventType === 'play') {
+      if (!songStarted.current) {
+        return;
+      }
+
+      playAudio();
+      startVisualFrame();
+      startSyncLoop();
+      return;
+    }
+
+    if (event.eventType === 'pause') {
+      pauseAudio();
+      stopVisualFrame();
+      stopSyncLoop();
+    }
+  }, [pauseAudio, playAudio, prepareForSequenceStart, startSongPlayback]);
 
   const setupVisualiser = useCallback(() => {
     const canvasElement = document.getElementById(
@@ -79,11 +206,12 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
       'main-audio',
     ) as HTMLAudioElement | null;
 
-    if (!canvasElement && !audioElement) {
+    if (!canvasElement || !audioElement) {
       return;
     }
 
     const audioContext = new AudioContext();
+    audioContextRef.current = audioContext;
     const sourceNode = audioContext.createMediaElementSource(audioElement!);
 
     const canvasWidth = window.innerWidth;
@@ -114,43 +242,31 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
   }, []);
 
   useEffect(() => {
-    if (!audioSources?.length) {
-      return;
-    }
-
     setupVisualiser();
-  }, [audioSources]);
+  }, [setupVisualiser]);
 
   useEffect(() => {
-    const eles: VNode<
-      Attributes & {
-        src: string;
-        id: string;
-        volume: number;
-      }
-    >[] = [];
-
-    for (const track of tracks) {
-      const ele = h('audio', {
-        src: track.url,
-        id: track.isMainTrack ? 'main-audio' : `audio-${track.name}`,
-        volume: track.volume,
-      });
-      eles.push(ele);
-    }
-
     window.addEventListener(KARAOKE_EVENT, onKaraokeEvent);
-
-    setAudioSources(eles);
 
     return () => {
       window.removeEventListener(KARAOKE_EVENT, onKaraokeEvent);
+      stopVisualFrame();
+      stopSyncLoop();
+      audioContextRef.current?.close();
+      audioContextRef.current = null;
     };
-  }, []);
+  }, [onKaraokeEvent]);
 
   return (
     <>
-      {audioSources}
+      {tracks.map((track) => (
+        <audio
+          key={track.fileName}
+          src={track.url}
+          id={track.isMainTrack ? 'main-audio' : `audio-${track.name}`}
+          volume={track.volume}
+        />
+      ))}
       <canvas id="visual-canvas" className="antialiased fixed z-10" />
     </>
   );

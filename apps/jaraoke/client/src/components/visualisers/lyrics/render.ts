@@ -1,62 +1,60 @@
+import type { Lyric, LyricDisplayType } from 'jaraoke-shared/types';
+import {
+  LYRIC_INSTRUMENTAL_BAR_END_EARLY_MS,
+  LYRIC_NEXT_LINE_PREVIEW_WINDOW_MS,
+  LYRIC_POST_SING_HOLD_MS,
+} from '../../../constants';
+import { LyricsCanvasDrawer } from './canvas-drawer';
+import { resolveInstrumentalBreakState } from './instrumental-break';
+import { resolveLaneRows, findCurrentLineIndex } from './lane-state';
+import { buildPreparedLyricsState } from './lane-prep';
 import type {
-  Lyric,
-  LyricDisplayType,
-  LyricSyllable,
-  PhraseEffect,
-} from 'jaraoke-shared/types';
-import { LYRIC_COLOURS } from '../../../constants';
+  InstrumentalBreakState,
+  LaneRow,
+  LaneScrollStateByDisplayType,
+  LineRenderStyle,
+  LyricsRenderFrame,
+  PreparedLane,
+} from './types';
 
-const DEFAULT_FILL_DURATION_MS = 1_000;
-const DEFAULT_LINE_DURATION_MS = 2_000;
-const WORD_SPACING_RATIO = 0.4;
-const BASE_FONT_FAMILY = 'Impact, Haettenschweiler, sans-serif';
-const BASE_OUTLINE_COLOUR = 'rgba(0, 0, 0, 0.9)';
-const BASE_INACTIVE_COLOUR = 'rgba(255, 255, 255, 0.65)';
+export type { IntroOverlay, LyricsRenderFrame } from './types';
 
-interface PreparedSyllable {
-  phrase: string;
-  startAtMs: number;
-  durationMs?: number;
-  effect: PhraseEffect;
-}
-
-interface PreparedWord {
-  syllables: PreparedSyllable[];
-}
-
-interface PreparedLine {
-  startAtMs: number;
-  endAtMs: number;
-  words: PreparedWord[];
-}
-
-interface PreparedLane {
-  lines: PreparedLine[];
-  starts: number[];
-}
-
-export interface IntroOverlay {
-  titleVisible: boolean;
-  title: string;
-  artist?: string;
-  duration?: number;
-  countdownValue?: number;
-}
-
-export interface LyricsRenderFrame {
-  showLyrics: boolean;
-  songTimeMs: number;
-  overlay: IntroOverlay;
-}
+const MAX_VISIBLE_LINES_PER_LANE = 4;
+const MAX_VISIBLE_TRANSLATION_LINES = 2;
+const SCROLL_TRANSITION_MS = 400;
+const FOCUS_REGRESSION_GUARD_MS = 140;
+const INSTRUMENTAL_BREAK_THRESHOLD_MS = 8_000;
+const DUET_LANE_FONT_SCALE = 0.88;
+const DUET_LANE_GAP_RATIO = 1.18;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
+const cubicBezierOut = (t: number) => {
+  const clamped = clamp(t, 0, 1);
+  const u = 1 - clamped;
+  const y1 = 1;
+  const y2 = 1;
+
+  return (
+    3 * u * u * clamped * y1 +
+    3 * u * clamped * clamped * y2 +
+    clamped * clamped * clamped
+  );
+};
+
 export class JaraokeLyricsRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private textWidthCache = new Map<string, number>();
+  private drawer: LyricsCanvasDrawer;
   private lanes: Record<LyricDisplayType, PreparedLane>;
+  private laneTimelineBounds: Record<
+    LyricDisplayType,
+    { starts: number[]; holds: number[] }
+  >;
+  private timelineStarts: number[];
+  private timelineHolds: number[];
+  private laneScrollState: LaneScrollStateByDisplayType;
 
   constructor(canvas: HTMLCanvasElement, lyrics: Lyric[]) {
     this.canvas = canvas;
@@ -67,7 +65,20 @@ export class JaraokeLyricsRenderer {
     }
 
     this.ctx = context;
-    this.lanes = this.buildLanes(lyrics);
+    this.drawer = new LyricsCanvasDrawer(this.canvas, this.ctx);
+
+    const prepared = buildPreparedLyricsState(lyrics, LYRIC_POST_SING_HOLD_MS);
+    this.lanes = prepared.lanes;
+    this.timelineStarts = prepared.timelineStarts;
+    this.timelineHolds = prepared.timelineHolds;
+    this.laneTimelineBounds = prepared.laneTimelineBounds;
+
+    this.laneScrollState = {
+      top: { fromIndex: -1, toIndex: -1, changedAtMs: 0 },
+      bottom: { fromIndex: -1, toIndex: -1, changedAtMs: 0 },
+      translation: { fromIndex: -1, toIndex: -1, changedAtMs: 0 },
+    };
+
     this.resize();
   }
 
@@ -76,399 +87,403 @@ export class JaraokeLyricsRenderer {
     this.canvas.height = window.innerHeight;
     this.ctx.textAlign = 'left';
     this.ctx.textBaseline = 'middle';
+    this.drawer.onResize();
   }
 
   public render(frame: LyricsRenderFrame): void {
-    this.clear();
+    this.drawer.clear();
 
     if (frame.showLyrics) {
       this.drawLyrics(frame.songTimeMs);
     }
 
     if (frame.overlay.titleVisible) {
-      this.drawTitleCard(frame.overlay);
+      this.drawer.drawTitleCard(frame.overlay);
     }
-
-    if (typeof frame.overlay.countdownValue === 'number') {
-      this.drawCountdown(frame.overlay.countdownValue);
-    }
-  }
-
-  private buildLanes(lyrics: Lyric[]): Record<LyricDisplayType, PreparedLane> {
-    const laneLines: Record<LyricDisplayType, PreparedLine[]> = {
-      top: [],
-      bottom: [],
-      translation: [],
-    };
-
-    for (const lyric of lyrics) {
-      const sortedLines = lyric.lines.slice().sort((a, b) => a.startAtMs - b.startAtMs);
-
-      for (let index = 0; index < sortedLines.length; index++) {
-        const line = sortedLines[index];
-        const nextLineStart = sortedLines[index + 1]?.startAtMs;
-        const words = line.words
-          .map((word) => ({
-            syllables: word.syllables
-              .map((syllable) => this.prepareSyllable(syllable))
-              .filter((syllable) => syllable.phrase.length > 0),
-          }))
-          .filter((word) => word.syllables.length > 0);
-
-        if (words.length === 0) {
-          continue;
-        }
-
-        const lastSyllableStart = Math.max(
-          ...words.flatMap((word) =>
-            word.syllables.map((syllable) => syllable.startAtMs),
-          ),
-        );
-        const fallbackLineEnd =
-          lastSyllableStart + DEFAULT_LINE_DURATION_MS;
-        const endAtMs = nextLineStart || fallbackLineEnd;
-        const resolvedWords = this.resolveSyllableDurations(words, endAtMs);
-
-        laneLines[lyric.displayType].push({
-          startAtMs: line.startAtMs,
-          endAtMs: Math.max(endAtMs, line.startAtMs + DEFAULT_LINE_DURATION_MS),
-          words: resolvedWords,
-        });
-      }
-    }
-
-    const buildLane = (displayType: LyricDisplayType): PreparedLane => {
-      const lines = laneLines[displayType].sort((a, b) => a.startAtMs - b.startAtMs);
-
-      return {
-        starts: lines.map((line) => line.startAtMs),
-        lines,
-      };
-    };
-
-    return {
-      top: buildLane('top'),
-      bottom: buildLane('bottom'),
-      translation: buildLane('translation'),
-    };
-  }
-
-  private prepareSyllable(syllable: LyricSyllable): PreparedSyllable {
-    return {
-      phrase: syllable.phrase.trim(),
-      startAtMs: syllable.startAtMs,
-      durationMs:
-        typeof syllable.durationMs === 'number' && syllable.durationMs > 0
-          ? syllable.durationMs
-          : undefined,
-      effect: syllable.effect,
-    };
-  }
-
-  private resolveSyllableDurations(words: PreparedWord[], lineEndAtMs: number) {
-    return words.map((word, wordIndex) => {
-      const syllables = word.syllables.map((syllable, syllableIndex) => {
-        const explicitDuration = syllable.durationMs;
-
-        if (typeof explicitDuration === 'number') {
-          return {
-            ...syllable,
-            durationMs: explicitDuration,
-          };
-        }
-
-        const nextSyllableStart = word.syllables[syllableIndex + 1]?.startAtMs;
-        const nextWordStart = words[wordIndex + 1]?.syllables[0]?.startAtMs;
-        const inferredBoundary =
-          nextSyllableStart || nextWordStart || lineEndAtMs || 0;
-        const inferredDuration = inferredBoundary - syllable.startAtMs;
-
-        if (inferredDuration > 0) {
-          return {
-            ...syllable,
-            durationMs: inferredDuration,
-          };
-        }
-
-        return {
-          ...syllable,
-          durationMs: undefined,
-        };
-      });
-
-      return {
-        syllables,
-      };
-    });
-  }
-
-  private clear(): void {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   private drawLyrics(songTimeMs: number): void {
-    this.drawLaneLine('top', songTimeMs, this.canvas.height * 0.72);
-    this.drawLaneLine('bottom', songTimeMs, this.canvas.height * 0.84);
-    this.drawLaneLine('translation', songTimeMs, this.canvas.height * 0.62);
+    this.drawer.drawBackdropVignette();
+
+    const hasTop = this.lanes.top.lines.length > 0;
+    const hasBottom = this.lanes.bottom.lines.length > 0;
+    const hasTranslation = this.lanes.translation.lines.length > 0;
+    const isDuetLayout = hasTop && hasBottom;
+
+    if (isDuetLayout) {
+      const topAnchorY = this.canvas.height * 0.28;
+      const bottomAnchorY = this.canvas.height * 0.72;
+      const topBreak = this.resolveLaneInstrumentalBreak('top', songTimeMs);
+      const bottomBreak = this.resolveLaneInstrumentalBreak('bottom', songTimeMs);
+
+      this.drawDuetLane('top', songTimeMs, topAnchorY, topBreak);
+      this.drawDuetLane('bottom', songTimeMs, bottomAnchorY, bottomBreak);
+
+      if (hasTranslation) {
+        this.drawTranslationLines(songTimeMs);
+      }
+
+      return;
+    }
+
+    const instrumentalBreak = this.resolveInstrumentalBreak(songTimeMs);
+
+    if (instrumentalBreak) {
+      this.drawer.drawInstrumentalBreak(instrumentalBreak);
+      return;
+    }
+
+    const primaryDisplayType: LyricDisplayType = hasTop
+      ? 'top'
+      : hasBottom
+        ? 'bottom'
+        : 'translation';
+    const primaryAnchorY = this.canvas.height * 0.5;
+
+    this.drawLane(primaryDisplayType, songTimeMs, primaryAnchorY, false);
+
+    if (hasTranslation && primaryDisplayType !== 'translation') {
+      this.drawTranslationLines(songTimeMs);
+    }
   }
 
-  private drawLaneLine(
-    displayType: LyricDisplayType,
+  private resolveInstrumentalBreak(songTimeMs: number): InstrumentalBreakState | null {
+    return resolveInstrumentalBreakState({
+      songTimeMs,
+      timelineStarts: this.timelineStarts,
+      timelineHolds: this.timelineHolds,
+      breakThresholdMs: INSTRUMENTAL_BREAK_THRESHOLD_MS,
+      barEndEarlyMs: LYRIC_INSTRUMENTAL_BAR_END_EARLY_MS,
+    });
+  }
+
+  private resolveLaneInstrumentalBreak(
+    displayType: 'top' | 'bottom',
     songTimeMs: number,
-    y: number,
+  ): InstrumentalBreakState | null {
+    const timeline = this.laneTimelineBounds[displayType];
+
+    return resolveInstrumentalBreakState({
+      songTimeMs,
+      timelineStarts: timeline.starts,
+      timelineHolds: timeline.holds,
+      breakThresholdMs: INSTRUMENTAL_BREAK_THRESHOLD_MS,
+      barEndEarlyMs: LYRIC_INSTRUMENTAL_BAR_END_EARLY_MS,
+    });
+  }
+
+  private drawDuetLane(
+    displayType: 'top' | 'bottom',
+    songTimeMs: number,
+    anchorY: number,
+    laneBreak: InstrumentalBreakState | null,
   ): void {
+    const lineFontSize = this.resolveLaneFontSize(displayType, true);
+    const displayName = this.resolveDuetLaneDisplayName(displayType, songTimeMs);
+
+    if (displayName) {
+      this.drawer.drawSingerLabel(displayName, displayType, anchorY, lineFontSize);
+    }
+
+    if (!laneBreak) {
+      this.drawLane(displayType, songTimeMs, anchorY, false, lineFontSize, true);
+      return;
+    }
+
+    this.drawer.drawLaneInstrumentalBreak(laneBreak, anchorY);
+  }
+
+  private resolveDuetLaneDisplayName(
+    displayType: 'top' | 'bottom',
+    songTimeMs: number,
+  ): string {
     const lane = this.lanes[displayType];
-    const activeLine = this.findActiveLine(lane, songTimeMs);
 
-    if (!activeLine) {
-      return;
-    }
-
-    const fontSize = this.resolveFontSize(displayType);
-    const wordSpacing = Math.round(fontSize * WORD_SPACING_RATIO);
-    const activeColour = this.resolveActiveColour(displayType);
-    const inactiveColour =
-      displayType === 'translation' ? 'rgba(220, 220, 220, 0.6)' : BASE_INACTIVE_COLOUR;
-    const lineWidth = this.measureLineWidth(activeLine, fontSize, wordSpacing);
-    let currentX = this.canvas.width / 2 - lineWidth / 2;
-
-    this.ctx.font = `700 ${fontSize}px ${BASE_FONT_FAMILY}`;
-    this.ctx.lineWidth = Math.max(2, Math.round(fontSize * 0.1));
-    this.ctx.strokeStyle = BASE_OUTLINE_COLOUR;
-
-    for (let wordIndex = 0; wordIndex < activeLine.words.length; wordIndex++) {
-      const word = activeLine.words[wordIndex];
-
-      for (const syllable of word.syllables) {
-        const textWidth = this.measureTextWidth(syllable.phrase, fontSize);
-
-        this.ctx.strokeText(syllable.phrase, currentX, y);
-        this.ctx.fillStyle = inactiveColour;
-        this.ctx.fillText(syllable.phrase, currentX, y);
-
-        this.drawActiveSyllable(
-          syllable,
-          currentX,
-          y,
-          textWidth,
-          songTimeMs,
-          activeColour,
-        );
-
-        currentX += textWidth;
-      }
-
-      if (wordIndex < activeLine.words.length - 1) {
-        currentX += wordSpacing;
-      }
-    }
-  }
-
-  private drawActiveSyllable(
-    syllable: PreparedSyllable,
-    x: number,
-    y: number,
-    width: number,
-    songTimeMs: number,
-    activeColour: string,
-  ): void {
-    if (songTimeMs < syllable.startAtMs) {
-      return;
-    }
-
-    const durationMs = syllable.durationMs;
-    const useFill = syllable.effect === 'fill' && typeof durationMs === 'number';
-
-    if (!useFill) {
-      this.ctx.fillStyle = activeColour;
-      this.ctx.fillText(syllable.phrase, x, y);
-      return;
-    }
-
-    const safeDuration = Math.max(1, durationMs || DEFAULT_FILL_DURATION_MS);
-    const fillRatio = clamp((songTimeMs - syllable.startAtMs) / safeDuration, 0, 1);
-
-    if (fillRatio <= 0) {
-      return;
-    }
-
-    this.ctx.save();
-    this.ctx.beginPath();
-    this.ctx.rect(x, y - this.resolveClipHeight(), width * fillRatio, this.resolveClipHeight() * 2);
-    this.ctx.clip();
-    this.ctx.fillStyle = activeColour;
-    this.ctx.fillText(syllable.phrase, x, y);
-    this.ctx.restore();
-  }
-
-  private resolveClipHeight(): number {
-    return Math.round(this.canvas.height * 0.06);
-  }
-
-  private findActiveLine(lane: PreparedLane, songTimeMs: number): PreparedLine | null {
     if (lane.lines.length === 0) {
-      return null;
+      return '';
     }
 
-    let low = 0;
-    let high = lane.starts.length - 1;
-    let candidate = -1;
+    const currentIndex = findCurrentLineIndex(lane, songTimeMs);
+    const fallbackIndex = lane.lines.findIndex(
+      (line) => line.firstSyllableStartAtMs >= songTimeMs,
+    );
+    const lineIndex =
+      currentIndex >= 0
+        ? currentIndex
+        : fallbackIndex >= 0
+          ? fallbackIndex
+          : lane.lines.length - 1;
 
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
+    return lane.lines[lineIndex]?.displayName || '';
+  }
 
-      if (lane.starts[mid] <= songTimeMs) {
-        candidate = mid;
-        low = mid + 1;
-      } else {
-        high = mid - 1;
+  private drawTranslationLines(songTimeMs: number): void {
+    const lane = this.lanes.translation;
+
+    if (lane.lines.length === 0) {
+      return;
+    }
+
+    const currentIndex = findCurrentLineIndex(lane, songTimeMs);
+    const previewIndices = this.findTranslationPreviewIndices(
+      lane,
+      songTimeMs,
+      currentIndex,
+      MAX_VISIBLE_TRANSLATION_LINES,
+    );
+    const rows: Array<{ index: number; role: 'active' | 'next' }> = [];
+
+    if (currentIndex >= 0) {
+      rows.push({ index: currentIndex, role: 'active' });
+    }
+
+    for (const index of previewIndices) {
+      if (rows.length >= MAX_VISIBLE_TRANSLATION_LINES) {
+        break;
       }
+
+      rows.push({ index, role: 'next' });
     }
 
-    if (candidate < 0) {
-      return null;
+    if (rows.length === 0) {
+      return;
     }
 
-    const line = lane.lines[candidate];
+    const translationFont = this.drawer.resolveFontSize('translation');
+    const topY = Math.max(34, Math.round(this.canvas.height * 0.1));
+    const lineGap = Math.max(24, Math.round(translationFont * 1.2));
 
-    if (songTimeMs > line.endAtMs) {
-      return null;
-    }
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex];
+      const translationLine = lane.lines[row.index];
+      const style =
+        row.role === 'active'
+          ? this.resolveLineStyle('active', 'translation', false)
+          : this.resolveLineStyle('next', 'translation', false);
 
-    return line;
-  }
-
-  private measureLineWidth(line: PreparedLine, fontSize: number, wordSpacing: number): number {
-    let width = 0;
-
-    for (let wordIndex = 0; wordIndex < line.words.length; wordIndex++) {
-      const word = line.words[wordIndex];
-
-      for (const syllable of word.syllables) {
-        width += this.measureTextWidth(syllable.phrase, fontSize);
-      }
-
-      if (wordIndex < line.words.length - 1) {
-        width += wordSpacing;
-      }
-    }
-
-    return width;
-  }
-
-  private measureTextWidth(text: string, fontSize: number): number {
-    const cacheKey = `${fontSize}:${text}`;
-    const existing = this.textWidthCache.get(cacheKey);
-
-    if (typeof existing === 'number') {
-      return existing;
-    }
-
-    this.ctx.font = `700 ${fontSize}px ${BASE_FONT_FAMILY}`;
-    const width = this.ctx.measureText(text).width;
-    this.textWidthCache.set(cacheKey, width);
-
-    return width;
-  }
-
-  private resolveFontSize(displayType: LyricDisplayType): number {
-    if (displayType === 'translation') {
-      return Math.max(26, Math.round(this.canvas.height * 0.045));
-    }
-
-    return Math.max(32, Math.round(this.canvas.height * 0.06));
-  }
-
-  private resolveActiveColour(displayType: LyricDisplayType): string {
-    if (displayType === 'bottom') {
-      return LYRIC_COLOURS.personTwo;
-    }
-
-    if (displayType === 'translation') {
-      return LYRIC_COLOURS.translation;
-    }
-
-    return LYRIC_COLOURS.personOne;
-  }
-
-  private drawTitleCard(overlay: IntroOverlay): void {
-    const cardWidth = Math.min(620, Math.round(this.canvas.width * 0.75));
-    const cardHeight = 150;
-    const x = (this.canvas.width - cardWidth) / 2;
-    const y = this.canvas.height * 0.16;
-
-    this.ctx.save();
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
-    this.roundRect(x, y, cardWidth, cardHeight, 14, true);
-
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-
-    this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.font = `700 42px ${BASE_FONT_FAMILY}`;
-    this.ctx.fillText(overlay.title, this.canvas.width / 2, y + 52);
-
-    this.ctx.font = `500 26px ${BASE_FONT_FAMILY}`;
-    const artist = overlay.artist?.trim() || 'Unknown Artist';
-    this.ctx.fillText(artist, this.canvas.width / 2, y + 96);
-
-    if (typeof overlay.duration === 'number' && overlay.duration > 0) {
-      this.ctx.font = `500 20px ${BASE_FONT_FAMILY}`;
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      this.ctx.fillText(
-        `Duration ${this.formatDuration(overlay.duration)}`,
-        this.canvas.width / 2,
-        y + 126,
+      this.drawer.drawPreparedLine(
+        translationLine,
+        'translation',
+        topY + rowIndex * lineGap,
+        songTimeMs,
+        style,
       );
     }
-
-    this.ctx.restore();
   }
 
-  private drawCountdown(value: number): void {
-    this.ctx.save();
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.font = `700 126px ${BASE_FONT_FAMILY}`;
-    this.ctx.lineWidth = 8;
-    this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.92)';
-    this.ctx.strokeText(String(value), this.canvas.width / 2, this.canvas.height * 0.5);
-    this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.fillText(String(value), this.canvas.width / 2, this.canvas.height * 0.5);
-    this.ctx.restore();
-  }
+  private findTranslationPreviewIndices(
+    lane: PreparedLane,
+    songTimeMs: number,
+    currentIndex: number,
+    maxCount: number,
+  ): number[] {
+    const output: number[] = [];
+    const startIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
 
-  private formatDuration(durationSeconds: number): string {
-    const minutes = Math.floor(durationSeconds / 60);
-    const seconds = Math.floor(durationSeconds % 60)
-      .toString()
-      .padStart(2, '0');
+    for (let index = startIndex; index < lane.lines.length; index++) {
+      const line = lane.lines[index];
+      const delta = line.firstSyllableStartAtMs - songTimeMs;
 
-    return `${minutes}:${seconds}`;
-  }
+      if (delta < 0) {
+        continue;
+      }
 
-  private roundRect(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    radius: number,
-    fill: boolean,
-  ): void {
-    this.ctx.beginPath();
-    this.ctx.moveTo(x + radius, y);
-    this.ctx.lineTo(x + width - radius, y);
-    this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    this.ctx.lineTo(x + width, y + height - radius);
-    this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    this.ctx.lineTo(x + radius, y + height);
-    this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    this.ctx.lineTo(x, y + radius);
-    this.ctx.quadraticCurveTo(x, y, x + radius, y);
-    this.ctx.closePath();
+      if (delta > LYRIC_NEXT_LINE_PREVIEW_WINDOW_MS) {
+        break;
+      }
 
-    if (fill) {
-      this.ctx.fill();
+      output.push(index);
+
+      if (output.length >= maxCount) {
+        break;
+      }
     }
+
+    return output;
+  }
+
+  private drawLane(
+    displayType: LyricDisplayType,
+    songTimeMs: number,
+    anchorY: number,
+    showSingerLabel: boolean,
+    resolvedFontSize = this.resolveLaneFontSize(displayType, false),
+    isDuetLane = false,
+  ): void {
+    const lane = this.lanes[displayType];
+
+    if (lane.lines.length === 0) {
+      return;
+    }
+
+    const laneRows = resolveLaneRows({
+      lane,
+      songTimeMs,
+      previousFocusIndex: this.laneScrollState[displayType].toIndex,
+      maxVisibleLines: MAX_VISIBLE_LINES_PER_LANE,
+      previewWindowMs: LYRIC_NEXT_LINE_PREVIEW_WINDOW_MS,
+      focusRegressionGuardMs: FOCUS_REGRESSION_GUARD_MS,
+    });
+
+    if (laneRows.rows.length === 0) {
+      return;
+    }
+
+    const fontSize = resolvedFontSize;
+    const lineGap = Math.max(
+      24,
+      Math.round(fontSize * (isDuetLane ? DUET_LANE_GAP_RATIO : 1.28)),
+    );
+    const animatedOffsetRows = this.resolveAnimatedOffsetRows(
+      displayType,
+      laneRows.focusIndex,
+      songTimeMs,
+    );
+
+    if (showSingerLabel) {
+      const focusLine =
+        laneRows.focusIndex >= 0 ? lane.lines[laneRows.focusIndex] : null;
+      const topVisibleLineY = laneRows.rows.reduce(
+        (minY, row) =>
+          Math.min(
+            minY,
+            anchorY + (row.offset + animatedOffsetRows) * lineGap,
+          ),
+        anchorY,
+      );
+
+      if (focusLine?.displayName) {
+        this.drawer.drawSingerLabel(
+          focusLine.displayName,
+          displayType,
+          topVisibleLineY,
+          fontSize,
+        );
+      }
+    }
+
+    for (const row of laneRows.rows) {
+      const line = lane.lines[row.index];
+      const y = anchorY + (row.offset + animatedOffsetRows) * lineGap;
+      const style = this.resolveLineStyle(
+        row.role,
+        displayType,
+        songTimeMs <= line.singUntilMs,
+      );
+
+      this.drawer.drawPreparedLine(line, displayType, y, songTimeMs, style);
+    }
+  }
+
+  private resolveLaneFontSize(
+    displayType: LyricDisplayType,
+    isDuetLane: boolean,
+  ): number {
+    const baseFontSize = this.drawer.resolveFontSize(displayType);
+
+    if (isDuetLane && displayType !== 'translation') {
+      return Math.max(24, Math.round(baseFontSize * DUET_LANE_FONT_SCALE));
+    }
+
+    return baseFontSize;
+  }
+
+  private resolveAnimatedOffsetRows(
+    displayType: LyricDisplayType,
+    focusIndex: number,
+    songTimeMs: number,
+  ): number {
+    const state = this.laneScrollState[displayType];
+
+    if (focusIndex !== state.toIndex) {
+      state.fromIndex = state.toIndex;
+      state.toIndex = focusIndex;
+      state.changedAtMs = songTimeMs;
+    }
+
+    if (state.fromIndex < 0 || state.toIndex < 0) {
+      return 0;
+    }
+
+    const delta = state.toIndex - state.fromIndex;
+
+    if (delta === 0) {
+      return 0;
+    }
+
+    const elapsed = songTimeMs - state.changedAtMs;
+    const progress = clamp(elapsed / SCROLL_TRANSITION_MS, 0, 1);
+    const eased = cubicBezierOut(progress);
+    const direction = delta > 0 ? 1 : -1;
+
+    return direction * (1 - eased);
+  }
+
+  private resolveLineStyle(
+    role: LaneRow['role'],
+    displayType: LyricDisplayType,
+    isStillSinging: boolean,
+  ): LineRenderStyle {
+    if (displayType === 'translation') {
+      if (role === 'active') {
+        return {
+          opacity: 0.78,
+          fontScale: 0.92,
+          highlight: false,
+        };
+      }
+
+      if (role === 'next') {
+        return {
+          opacity: 0.5,
+          fontScale: 0.9,
+          highlight: false,
+        };
+      }
+
+      return {
+        opacity: 0.28,
+        fontScale: 0.88,
+        highlight: false,
+      };
+    }
+
+    if (role === 'active') {
+      return {
+        opacity: 1,
+        fontScale: 1.08,
+        highlight: true,
+      };
+    }
+
+    if (role === 'next') {
+      return {
+        opacity: 0.5,
+        fontScale: 0.94,
+        highlight: false,
+      };
+    }
+
+    if (role === 'future') {
+      return {
+        opacity: 0.3,
+        fontScale: 0.9,
+        highlight: false,
+      };
+    }
+
+    if (isStillSinging) {
+      return {
+        opacity: 0.58,
+        fontScale: 0.92,
+        highlight: true,
+      };
+    }
+
+    return {
+      opacity: 0.2,
+      fontScale: 0.9,
+      highlight: false,
+    };
   }
 }

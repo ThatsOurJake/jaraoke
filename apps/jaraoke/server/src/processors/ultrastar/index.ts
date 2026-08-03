@@ -41,6 +41,7 @@ export const ultastarProcessor: Processor = async (
     const reader = usReader(destUsInfoFile);
     const details = reader.getDetails();
     const { metadata, duration, cover } = details;
+    const defaultTitle = path.parse(ultrastarFile).name;
 
     const lyricBuilder = usLyricsBuilder(details);
     const lyrics = lyricBuilder.toJaraoke();
@@ -48,8 +49,8 @@ export const ultastarProcessor: Processor = async (
     const infoFileLocation = createJaraokeInfoFile(
       {
         metadata: {
-          title: metadata.title,
-          artist: metadata.artist,
+          title: metadata.title?.trim() || defaultTitle,
+          artist: metadata.artist?.trim(),
           year: metadata.year,
           duration: Math.floor(duration || 0),
         },

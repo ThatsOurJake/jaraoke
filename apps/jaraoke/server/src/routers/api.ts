@@ -2,9 +2,10 @@ import fs, { createReadStream } from 'node:fs';
 import path from 'node:path';
 import Router from '@koa/router';
 
-import { directories } from '../constants';
+import { directories, VERSIONS } from '../constants';
 import { store } from '../data/store';
 import { fileExtToMimeTypes } from '../utils/mime-type';
+import { isJaraokeVersionCompat } from '../utils/is-jaraoke-version-compat';
 
 export const apiRouter = new Router({
   prefix: '/api',
@@ -13,8 +14,8 @@ export const apiRouter = new Router({
 apiRouter.get('/songs', (ctx) => {
   // TODO: Sort method
   const output = store.karaokeFiles.sort((a, b) =>
-    a.metadata.title.localeCompare(b.metadata.title),
-  );
+    a.metadata.title.localeCompare(b.metadata.title)
+  ).filter(x => isJaraokeVersionCompat(x.version));
 
   ctx.body = output;
 });
@@ -84,14 +85,6 @@ apiRouter.get('/song/:id/:fileName', (ctx) => {
     ctx.set('Content-Length', fileSize.toString());
     ctx.body = createReadStream(filePath);
   }
-});
-
-apiRouter.get('/client-settings', (ctx) => {
-  const { settings } = store;
-
-  ctx.body = {
-    player: settings.player,
-  };
 });
 
 apiRouter.get('/health', (ctx) => {

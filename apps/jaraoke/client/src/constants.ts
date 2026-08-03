@@ -9,8 +9,10 @@ export const LYRIC_COLOURS = {
 } as const;
 
 export const TITLE_CARD_DURATION_MS = 2_000;
-export const COUNTDOWN_STEP_DURATION_MS = 1_000;
-export const COUNTDOWN_STARTING_NUMBER = 3;
+
+export const LYRIC_POST_SING_HOLD_MS = 1_800;
+export const LYRIC_NEXT_LINE_PREVIEW_WINDOW_MS = 2_500;
+export const LYRIC_INSTRUMENTAL_BAR_END_EARLY_MS = 1250;
 
 export const AUDIO_SYNC_INTERVAL_MS = 160;
 export const AUDIO_SYNC_SOFT_DRIFT_MS = 24;

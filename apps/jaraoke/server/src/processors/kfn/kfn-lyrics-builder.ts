@@ -81,46 +81,87 @@ export const kfnLyricsBuilder = (
   const convertToMilliseconds = (value: number) =>
     Math.round(value * KFN_MILLISECONDS_PER_TIMING_UNIT);
 
+  const extractSequenceIndex = (key: string) => {
+    const matches = key.match(/(\d+)$/);
+
+    if (!matches) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    return parseInt(matches[1], 10);
+  };
+
+  const parseTimings = (value?: string): number[] => {
+    if (!value) {
+      return [];
+    }
+
+    return value
+      .split(',')
+      .map((part) => parseInt(part.trim(), 10))
+      .filter((timing) => !Number.isNaN(timing));
+  };
+
+  const reconcileTimingsAndTokens = (
+    timings: number[],
+    tokenCount: number,
+  ): number[] => {
+    if (tokenCount === 0) {
+      return [];
+    }
+
+    if (timings.length === tokenCount) {
+      return timings;
+    }
+
+    if (timings.length === 0) {
+      return [];
+    }
+
+    if (timings.length > tokenCount) {
+      const extraCount = timings.length - tokenCount;
+
+      // Extra sync cues are typically pre-roll markers, so keep the tail that
+      // aligns with actual singable tokens.
+      return timings.slice(extraCount);
+    }
+
+    return timings;
+  };
+
   const getTimings = (eff: KfnLyricsEffect) => {
     return Object.entries(eff)
-      .reduce((acc: number[], current) => {
-        const [key, value] = current;
-
-        if (!/sync\d/.test(key)) {
-          return acc;
-        }
-
-        const parts = value.split(',').map((x) => parseInt(x, 10));
-
-        acc.push(...parts);
-
-        return acc;
-      }, [])
-      .filter((x) => x);
+      .filter(([key]) => /sync\d/.test(key))
+      .sort((first, second) => {
+        return (
+          extractSequenceIndex(first[0]) - extractSequenceIndex(second[0])
+        );
+      })
+      .flatMap(([, value]) => parseTimings(value));
   };
 
   const getLines = (eff: KfnLyricsEffect) => {
-    return Object.entries(eff).reduce((acc: Line[], current) => {
-      const [key, value] = current;
-      const isTextLine = /text\d/.test(key);
+    return Object.entries(eff)
+      .filter(([key]) => /text\d/.test(key))
+      .sort((first, second) => {
+        return (
+          extractSequenceIndex(first[0]) - extractSequenceIndex(second[0])
+        );
+      })
+      .reduce((acc: Line[], [key, value]) => {
+        if (value.trim().length === 0) {
+          return acc;
+        }
 
-      if (!isTextLine) {
+        const str = value.replace(/ {2,}/g, ' ').trim();
+
+        acc.push({
+          str,
+          group: key,
+        });
+
         return acc;
-      }
-
-      if (value.trim().length === 0) {
-        return acc;
-      }
-
-      const str = value.replace(/ {2,}/g, ' ').trim();
-
-      acc.push({
-        str,
-        group: key,
-      });
-
-      return acc;
-    }, []);
+      }, []);
   };
 
   const getSyllableTokens = (lines: Line[]) => {
@@ -128,10 +169,11 @@ export const kfnLyricsBuilder = (
       const words = line.str.split(/\s+/g).filter((word) => word.length > 0);
 
       for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+        // Preserve intentionally empty split segments and underscore syllables
+        // so token indexes stay aligned with authored KFN sync arrays.
         const syllables = words[wordIndex]
           .split(/\//g)
-          .map((syllable) => syllable.trim())
-          .filter((syllable) => syllable.length > 0);
+          .map((syllable) => syllable.trim());
 
         for (const syllable of syllables) {
           acc.push({
@@ -186,17 +228,21 @@ export const kfnLyricsBuilder = (
   const constructLyrics = (eff: KfnLyricsEffect) => {
     const timings = getTimings(eff);
     const lines = getLines(eff);
-    const syllables = getSyllableTokens(lines);
+    const tokens = getSyllableTokens(lines);
+    const reconciledTimings = reconcileTimingsAndTokens(
+      timings,
+      tokens.length,
+    );
 
-    if (timings.length !== syllables.length) {
+    if (reconciledTimings.length !== tokens.length) {
       throw new Error(
-        `Timings: ${timings.length} !== Syllables: ${syllables.length}`,
+        `Timings: ${reconciledTimings.length} !== Syllables: ${tokens.length}`,
       );
     }
 
-    const lyrics = applyTimingsToSyllables(syllables, timings);
+    const timedTokens = applyTimingsToSyllables(tokens, reconciledTimings);
 
-    return groupLyrics(lyrics);
+    return groupLyrics(timedTokens);
   };
 
   const buildJaraokeLines = (

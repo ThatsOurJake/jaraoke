@@ -1,11 +1,6 @@
 import type { JaraokeFile } from 'jaraoke-shared/types';
-import { useEffect, useMemo, useRef } from 'preact/hooks';
-import {
-  COUNTDOWN_STARTING_NUMBER,
-  COUNTDOWN_STEP_DURATION_MS,
-  KARAOKE_EVENT,
-  TITLE_CARD_DURATION_MS,
-} from '../../../constants';
+import { useEffect, useRef } from 'preact/hooks';
+import { KARAOKE_EVENT, TITLE_CARD_DURATION_MS } from '../../../constants';
 import { KaraokeEvent } from '../../../events/karaoke-event';
 import { JaraokeLyricsRenderer } from './render';
 
@@ -14,74 +9,6 @@ interface LyricsVisualiserProps {
   metadata: JaraokeFile['metadata'];
   onLoaded?: () => void;
 }
-
-interface IntroSchedule {
-  songStartAtTimelineMs: number;
-  countdownStartAtTimelineMs: number;
-  countdownEndAtTimelineMs: number;
-}
-
-const COUNTDOWN_TOTAL_DURATION_MS =
-  COUNTDOWN_STARTING_NUMBER * COUNTDOWN_STEP_DURATION_MS;
-
-const resolveEarliestLineStartAt = (lyrics: JaraokeFile['lyrics']) => {
-  const allStarts = lyrics.flatMap((lyric) =>
-    lyric.lines.map((line) => line.startAtMs),
-  );
-
-  if (allStarts.length === 0) {
-    return 0;
-  }
-
-  return Math.max(0, Math.min(...allStarts));
-};
-
-const buildIntroSchedule = (firstLineStartAtMs: number): IntroSchedule => {
-  const titleEndAt = TITLE_CARD_DURATION_MS;
-
-  if (firstLineStartAtMs >= COUNTDOWN_TOTAL_DURATION_MS) {
-    const songStartAtTimelineMs = titleEndAt;
-    const countdownEndAtTimelineMs =
-      songStartAtTimelineMs + firstLineStartAtMs;
-    const countdownStartAtTimelineMs =
-      countdownEndAtTimelineMs - COUNTDOWN_TOTAL_DURATION_MS;
-
-    return {
-      songStartAtTimelineMs,
-      countdownStartAtTimelineMs,
-      countdownEndAtTimelineMs,
-    };
-  }
-
-  const countdownStartAtTimelineMs = titleEndAt;
-  const countdownEndAtTimelineMs =
-    countdownStartAtTimelineMs + COUNTDOWN_TOTAL_DURATION_MS;
-
-  if (firstLineStartAtMs < COUNTDOWN_STEP_DURATION_MS) {
-    return {
-      songStartAtTimelineMs: titleEndAt,
-      countdownStartAtTimelineMs,
-      countdownEndAtTimelineMs,
-    };
-  }
-
-  const thresholdSongStartAt = countdownEndAtTimelineMs - firstLineStartAtMs;
-  const boundaries = [
-    countdownStartAtTimelineMs,
-    countdownStartAtTimelineMs + COUNTDOWN_STEP_DURATION_MS,
-    countdownStartAtTimelineMs + COUNTDOWN_STEP_DURATION_MS * 2,
-    countdownEndAtTimelineMs,
-  ];
-  const songStartAtTimelineMs =
-    boundaries.find((boundary) => boundary >= thresholdSongStartAt) ||
-    countdownEndAtTimelineMs;
-
-  return {
-    songStartAtTimelineMs,
-    countdownStartAtTimelineMs,
-    countdownEndAtTimelineMs,
-  };
-};
 
 export const LyricsVisualiser = ({
   lyrics,
@@ -96,10 +23,7 @@ export const LyricsVisualiser = ({
   const startedRef = useRef(false);
   const pausedRef = useRef(true);
   const songStartDispatchedRef = useRef(false);
-  const schedule = useMemo(
-    () => buildIntroSchedule(resolveEarliestLineStartAt(lyrics)),
-    [lyrics],
-  );
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const cancelFrame = () => {
     if (frameIdRef.current !== null) {
@@ -115,35 +39,25 @@ export const LyricsVisualiser = ({
       return 0;
     }
 
-    const audioElement = document.getElementById(
-      'main-audio',
-    ) as HTMLAudioElement | null;
+    const cachedAudio = audioRef.current;
+
+    if (cachedAudio && !cachedAudio.isConnected) {
+      audioRef.current = null;
+    }
+
+    if (!audioRef.current) {
+      audioRef.current = document.getElementById('main-audio') as
+        | HTMLAudioElement
+        | null;
+    }
+
+    const audioElement = audioRef.current;
 
     if (audioElement) {
       return Math.max(0, audioElement.currentTime * 1000);
     }
 
-    return Math.max(0, timelineElapsedMs - schedule.songStartAtTimelineMs);
-  };
-
-  const resolveCountdownValue = (timelineElapsedMs: number) => {
-    if (
-      timelineElapsedMs < schedule.countdownStartAtTimelineMs ||
-      timelineElapsedMs >= schedule.countdownEndAtTimelineMs
-    ) {
-      return undefined;
-    }
-
-    const countdownElapsed =
-      timelineElapsedMs - schedule.countdownStartAtTimelineMs;
-    const index = Math.floor(countdownElapsed / COUNTDOWN_STEP_DURATION_MS);
-    const value = COUNTDOWN_STARTING_NUMBER - index;
-
-    if (value < 1) {
-      return undefined;
-    }
-
-    return value;
+    return Math.max(0, timelineElapsedMs - TITLE_CARD_DURATION_MS);
   };
 
   const renderFrame = () => {
@@ -155,7 +69,7 @@ export const LyricsVisualiser = ({
 
     if (
       !songStartDispatchedRef.current &&
-      timelineElapsedMs >= schedule.songStartAtTimelineMs
+      timelineElapsedMs >= TITLE_CARD_DURATION_MS
     ) {
       songStartDispatchedRef.current = true;
       window.dispatchEvent(new KaraokeEvent('song-start'));
@@ -169,7 +83,6 @@ export const LyricsVisualiser = ({
         title: metadata.title,
         artist: metadata.artist,
         duration: metadata.duration,
-        countdownValue: resolveCountdownValue(timelineElapsedMs),
       },
     });
 
@@ -201,6 +114,7 @@ export const LyricsVisualiser = ({
     songStartDispatchedRef.current = false;
     pausedRef.current = false;
     pausedAtMsRef.current = 0;
+    audioRef.current = null;
     startedAtRef.current = performance.now();
     cancelFrame();
     frameIdRef.current = requestAnimationFrame(renderFrame);
@@ -251,7 +165,7 @@ export const LyricsVisualiser = ({
     return () => {
       window.removeEventListener(KARAOKE_EVENT, onKaraokePlayerEvent);
     };
-  }, [schedule]);
+  }, []);
 
   return <canvas ref={canvasRef} className="antialiased fixed z-20" />;
 };

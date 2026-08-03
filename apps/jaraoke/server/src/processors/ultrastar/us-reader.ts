@@ -17,7 +17,7 @@ export const usReader = (textFileLoc: string) => {
       return fileDetails;
     }
 
-    const lines = fs.readFileSync(textFileLoc).toString().split('\r\n');
+    const lines = fs.readFileSync(textFileLoc).toString().split(/\r?\n/g);
 
     const output: RPartial<UltrastarFile> = {
       tracks: {},
@@ -25,15 +25,28 @@ export const usReader = (textFileLoc: string) => {
       notes: [],
     };
 
-    for (const line of lines) {
-      if (line === 'E') {
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      const normalizedLine = line.replace(/^\uFEFF/, '');
+
+      if (normalizedLine === 'E') {
         // End of file
         break;
       }
 
-      if (line.startsWith('#')) {
+      if (normalizedLine.startsWith('#')) {
         // Attributes line;
-        const [key, value] = line.slice(1).split(':');
+        const separatorIndex = normalizedLine.indexOf(':');
+
+        if (separatorIndex < 0) {
+          continue;
+        }
+
+        const key = normalizedLine
+          .slice(1, separatorIndex)
+          .replace(/^\uFEFF/, '')
+          .trim();
+        const value = normalizedLine.slice(separatorIndex + 1).trim();
 
         switch (key.trim()) {
           case 'TITLE':
@@ -87,7 +100,7 @@ export const usReader = (textFileLoc: string) => {
       // Must be a note line
       let count = 0;
       let currentWord: string[] = [];
-      const letters = line.split('');
+      const letters = normalizedLine.split('');
       const parts = letters.reduce((acc: string[], current: string, index) => {
         if (current === ' ' && count < 4) {
           acc.push(currentWord.join(''));

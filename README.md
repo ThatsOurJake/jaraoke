@@ -36,7 +36,6 @@ scripts/
 - Node.js v24.9.0
 - pnpm via Corepack
 - ffmpeg and ffprobe
-- mpv if not using the web-based player
 
 ### Development commands
 
@@ -64,7 +63,7 @@ Default local ports:
 - `jaraoke-studio` server: `9898`
 - `jaraoke-studio` client: `5174`
 
-When `jaraoke` runs for the first time it creates its local app-data directory under `jaraoke-dev`. The generated settings file contains the configured `ffmpeg`, `ffprobe`, and `mpv` paths.
+When `jaraoke` runs for the first time it creates its local app-data directory under `jaraoke-dev`. The generated settings file contains the configured `ffmpeg` and `ffprobe` paths.
 
 To increase log level:
 

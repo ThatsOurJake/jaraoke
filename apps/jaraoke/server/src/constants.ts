@@ -17,7 +17,6 @@ export const directories = (() => {
 })();
 
 export const INFO_FILE_NAME = 'jaraoke.json';
-export const LYRICS_FILE_NAME = 'lyrics.ass';
 export const CDG_COMBINED_FILE_NAME = 'track.mp4';
 export const VIDEO_FILE_NAME = 'video.mp4';
 export const BG_VISUALS_FILE_NAME = 'bg.mp4';
@@ -37,5 +36,5 @@ export const US_TEMP_AUDIO_FILE = 'main.mp3';
 
 export const VERSIONS = {
   settings: 2,
-  jaraokeInfo: 1,
+  jaraokeInfo: 2,
 };

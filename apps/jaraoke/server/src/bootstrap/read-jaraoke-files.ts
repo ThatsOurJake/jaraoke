@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
-import { directories, INFO_FILE_NAME } from '../constants';
+import { directories, INFO_FILE_NAME, VERSIONS } from '../constants';
 import { store } from '../data/store';
 import { createLogger } from '../utils/logger';
+import { isJaraokeVersionCompat } from '../utils/is-jaraoke-version-compat';
 
 const logger = createLogger('bootstrap:read-karaoke-files');
 
@@ -34,6 +35,10 @@ export const readJaraokeFiles = async () => {
       ...parsed,
       parentDir: f.parentDir,
     });
+
+    if (!isJaraokeVersionCompat(parsed.version)) {
+      logger.warn(`Parsed ${f.filePath} is on version ${parsed.version} and incompatible with the current version ${VERSIONS.jaraokeInfo}`);
+    }
   }
 
   logger.debug(`Parsed ${output.length} Jaraoke files`);

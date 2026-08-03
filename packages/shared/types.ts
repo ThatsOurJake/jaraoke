@@ -111,37 +111,9 @@ export interface UltrastarFile {
   duration?: number;
 }
 
-export interface LyricBuilderAssOptions {
-  highlightColours?: {
-    personOne?: string;
-    personTwo?: string;
-    translation?: string;
-  };
-  fontSize?: {
-    lyrics?: number;
-    subtitle?: number;
-  };
-  font?: string;
-  paddingTiming?: number;
-  screen?: {
-    width: number;
-    height: number;
-  };
-  maxLinesOnScreen?: number;
-}
-
-export interface AssLine {
-  start: number;
-  end: number;
-  lyric: string;
-  style?: string;
-}
-
 export interface Settings {
   ffmpegPath: string;
   ffprobePath: string;
-  mpvPath: string;
-  player: 'mpv' | 'web';
   version: string;
 }
 
@@ -161,8 +133,6 @@ export interface JaraokeTrack {
   isToggleable: boolean;
 }
 
-export type JaraokeLyricsType = 'single' | 'duet' | 'translation';
-
 export interface JaraokeFileMeta {
   title: string;
   artist?: string;
@@ -178,10 +148,41 @@ interface BaseJarokeFIle {
   parentDir?: string;
 }
 
+export type LyricDisplayType = 'top' | 'bottom' | 'translation';
+
+export type JaraokeLyricsType = 'single' | 'duet' | 'translation';
+
+export type PhraseEffect = 'highlight' | 'fill';
+
+export interface LyricSyllable {
+  phrase: string;
+  // When should this phrase highlight (be sung)
+  startAtMs: number;
+  // Optional duration for long-sustain effects like left-to-right fill.
+  durationMs?: number;
+  effect: PhraseEffect;
+}
+
+export interface LyricWord {
+  syllables: LyricSyllable[];
+}
+
+export interface LyricLine {
+  // When should the whole line appear on screen in ms
+  startAtMs: number;
+  words: LyricWord[];
+}
+
+export interface Lyric {
+  displayName: string;
+  displayType: LyricDisplayType;
+  lines: LyricLine[];
+}
+
 export interface JaraokeFile extends BaseJarokeFIle {
   tracks: JaraokeTrack[];
-  lyrics: string;
-  lyricsType?: JaraokeLyricsType;
+  lyricsType: JaraokeLyricsType;
+  lyrics: Lyric[];
 }
 
 export interface JaraokeCDGFile extends BaseJarokeFIle {

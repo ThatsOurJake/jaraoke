@@ -17,20 +17,25 @@ export const MainPlayer = ({
   song,
   trackVolumes,
 }: MainPlayerProps) => {
-  const { lyrics, tracks, id: songId } = song;
+  const {
+    lyrics,
+    tracks,
+    metadata,
+    id: songId,
+  } = song;
   const loadedRef = useRef<{ audio: boolean; lyrics: boolean }>({
     audio: false,
     lyrics: false,
   });
-
-  const lyricsUrl = constructFileUrl(songId, lyrics);
-  const audioTracks = tracks.map((x) => ({
-    ...x,
-    volume:
-      trackVolumes.find((y) => y.trackFileName === x.fileName)?.volume || 1,
-    isMainTrack: tracks.length === 1 || x.name === 'General',
-    url: constructFileUrl(songId, x.fileName),
-  }));
+  const audioTracks = tracks.map((x) => {
+    const volume = trackVolumes.find((y) => y.trackFileName === x.fileName)?.volume;
+    return {
+      ...x,
+      volume: volume !== undefined ? volume : 1,
+      isMainTrack: tracks.length === 1 || x.name === 'General',
+      url: constructFileUrl(songId, x.fileName),
+    }
+  });
 
   const onPause = useCallback(() => {
     window.dispatchEvent(new KaraokeEvent('pause'));
@@ -63,7 +68,11 @@ export const MainPlayer = ({
   return (
     <PlayerWrapper onPause={onPause} onPlay={onPlay}>
       <AudioVisualiser tracks={audioTracks} onLoaded={onAudioLoaded} />
-      <LyricsVisualiser url={lyricsUrl} onLoaded={onLyricsLoaded} />
+      <LyricsVisualiser
+        lyrics={lyrics}
+        metadata={metadata}
+        onLoaded={onLyricsLoaded}
+      />
     </PlayerWrapper>
   );
 };

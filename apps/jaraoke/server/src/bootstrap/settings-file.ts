@@ -10,11 +10,6 @@ const logger = createLogger('bootstrap:settings-file');
 const migrate = (ini: Settings) => {
   let hasMigrations = false;
 
-  if (ini.version === '1') {
-    hasMigrations = true;
-    ini.player = 'mpv';
-  }
-
   if (hasMigrations) {
     logger.info('Migrated settings file');
     saveSettingsFile(ini);
@@ -34,8 +29,6 @@ const readSettingsFile = () => {
 const initialSettings: Settings = {
   ffmpegPath: 'ffmpeg',
   ffprobePath: 'ffprobe',
-  mpvPath: 'mpv',
-  player: 'mpv',
   version: VERSIONS.settings.toString(),
 };
 

@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   directories,
-  LYRICS_FILE_NAME,
   US_TEMP_AUDIO_FILE,
   US_TEMP_INFO_FILE,
 } from '../../constants';
@@ -42,15 +41,16 @@ export const ultastarProcessor: Processor = async (
     const reader = usReader(destUsInfoFile);
     const details = reader.getDetails();
     const { metadata, duration, cover } = details;
+    const defaultTitle = path.parse(ultrastarFile).name;
 
     const lyricBuilder = usLyricsBuilder(details);
-    const lyrics = lyricBuilder.toAss();
+    const lyrics = lyricBuilder.toJaraoke();
 
     const infoFileLocation = createJaraokeInfoFile(
       {
         metadata: {
-          title: metadata.title,
-          artist: metadata.artist,
+          title: metadata.title?.trim() || defaultTitle,
+          artist: metadata.artist?.trim(),
           year: metadata.year,
           duration: Math.floor(duration || 0),
         },
@@ -58,9 +58,11 @@ export const ultastarProcessor: Processor = async (
           {
             fileName: US_TEMP_AUDIO_FILE,
             name: 'main',
+            isToggleable: false,
           },
         ],
-        lyrics: LYRICS_FILE_NAME,
+        lyricsType: 'single',
+        lyrics,
         coverPhoto: cover
           ? imageToBase64(path.join(directory, cover))
           : undefined,
@@ -68,11 +70,7 @@ export const ultastarProcessor: Processor = async (
       directories.temp,
     );
 
-    const lyricsLoc = path.join(directories.temp, LYRICS_FILE_NAME);
-    fs.writeFileSync(lyricsLoc, lyrics);
-    logger.debug(`Saved lyrics @ "${lyricsLoc}"`);
-
-    moveFiles([destUsAudioFile, lyricsLoc, infoFileLocation], directory);
+    moveFiles([destUsAudioFile, infoFileLocation], directory);
   } catch (err) {
     const error = err as Error;
     logger.error(

@@ -1,13 +1,6 @@
 import fs from 'node:fs';
 
-import type { LyricBuilderAssOptions } from 'jaraoke-shared/types';
-import {
-  createAssLayout,
-  createAssTemplate,
-  createAssTimingFormatter,
-  renderAssChunk,
-  resolveAssFontSizes,
-} from '../shared';
+import type { JaraokeFile } from 'jaraoke-shared/types';
 
 interface LyricBuilderOptions {
   lrcFile: string;
@@ -18,12 +11,7 @@ interface LRCLine {
   str: string;
 }
 
-interface DisplayLine {
-  displayStart: number;
-  activeStart: number;
-  end: number;
-  lyric: string;
-}
+const FIRST_LINE_LEAD_IN_UNITS = 200;
 
 export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
   const fileContents = fs.readFileSync(opts.lrcFile).toString();
@@ -46,94 +34,46 @@ export const lrcLyricBuilder = (opts: LyricBuilderOptions) => {
     })
     .filter((x) => x != null);
 
-  const convertTiming = createAssTimingFormatter(100);
+  const toJaraoke = (): JaraokeFile['lyrics'] => {
+    const lines = lyricLines
+      .filter((line) => line.str.length > 0)
+      .map((line, index) => {
+        const activeStartAtMs = line.startTime * 10;
+        const lineStartAtMs =
+          index === 0
+            ? Math.max(0, (line.startTime - FIRST_LINE_LEAD_IN_UNITS) * 10)
+            : activeStartAtMs;
 
-  const toAss = (
-    options?: Pick<
-      LyricBuilderAssOptions,
-      'font' | 'fontSize' | 'highlightColours' | 'screen'
-    >,
-  ) => {
-    const {
-      font = 'IMPACT',
-      fontSize,
-      highlightColours,
-      screen,
-    } = options || {};
-    const { personOne: personOneHighlight = '&H00FF00&' } =
-      highlightColours || {};
-    const { lyrics: lyricFontSize } = resolveAssFontSizes(fontSize);
-
-    const { centerX, positions } = createAssLayout({
-      fontSize: lyricFontSize,
-      maxLinesOnScreen: 3,
-      screen,
-    });
-    const assTemplate = createAssTemplate({ font, fontSize: lyricFontSize });
-
-    const assLines: string[] = [];
-    const lines: DisplayLine[] = [];
-    const highlightTemplate = `\\r\\1c${personOneHighlight}\\b1`;
-
-    for (let i = 0; i < lyricLines.length; i++) {
-      const line = lyricLines[i];
-      const nextLineStart = lyricLines[i + 1]?.startTime || line.startTime;
-      const activeStart = line.startTime;
-      const displayStart =
-        i === 0 ? Math.max(0, activeStart - 200) : activeStart;
-
-      lines.push({
-        displayStart,
-        activeStart,
-        end: nextLineStart,
-        lyric: line.str,
-      });
-    }
-
-    for (let i = 0; i < lines.length; i++) {
-      const chunk = [lines[i - 1], lines[i], lines[i + 1]];
-      const currentLine = chunk[1];
-
-      if (currentLine.displayStart < currentLine.activeStart) {
-        assLines.push(
-          ...renderAssChunk({
-            chunk,
-            positions,
-            formatTiming: convertTiming,
-            window: {
-              start: currentLine.displayStart,
-              end: currentLine.activeStart,
+        return {
+          startAtMs: lineStartAtMs,
+          words: [
+            {
+              syllables: [
+                {
+                  phrase: line.str,
+                  startAtMs: activeStartAtMs,
+                  effect: 'highlight' as const,
+                },
+              ],
             },
-            createPrefix: ({ pos, isHighlighted }) =>
-              isHighlighted
-                ? `{${highlightTemplate}\\pos(${centerX},${pos})}`
-                : `{\\pos(${centerX},${pos})}`,
-          }),
-        );
-      }
+          ],
+        };
+      });
 
-      assLines.push(
-        ...renderAssChunk({
-          chunk,
-          positions,
-          formatTiming: convertTiming,
-          window: {
-            start: currentLine.activeStart,
-            end: currentLine.end,
-          },
-          createPrefix: ({ pos, isHighlighted }) =>
-            isHighlighted
-              ? `{${highlightTemplate}\\pos(${centerX},${pos})}`
-              : `{\\pos(${centerX},${pos})}`,
-          highlightedIndex: 1,
-        }),
-      );
+    if (lines.length === 0) {
+      throw new Error('Could not construct lyrics from LRC file');
     }
 
-    return `${assTemplate}${assLines.join('\n')}`;
+    return [
+      {
+        displayName: 'Main vocals',
+        displayType: 'top',
+        lines,
+      },
+    ];
   };
 
   return {
-    toAss,
+    toJaraoke,
   };
 };

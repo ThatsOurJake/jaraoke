@@ -27,13 +27,15 @@ export const MainPlayer = ({
     audio: false,
     lyrics: false,
   });
-  const audioTracks = tracks.map((x) => ({
-    ...x,
-    volume:
-      trackVolumes.find((y) => y.trackFileName === x.fileName)?.volume || 1,
-    isMainTrack: tracks.length === 1 || x.name === 'General',
-    url: constructFileUrl(songId, x.fileName),
-  }));
+  const audioTracks = tracks.map((x) => {
+    const volume = trackVolumes.find((y) => y.trackFileName === x.fileName)?.volume;
+    return {
+      ...x,
+      volume: volume !== undefined ? volume : 1,
+      isMainTrack: tracks.length === 1 || x.name === 'General',
+      url: constructFileUrl(songId, x.fileName),
+    }
+  });
 
   const onPause = useCallback(() => {
     window.dispatchEvent(new KaraokeEvent('pause'));

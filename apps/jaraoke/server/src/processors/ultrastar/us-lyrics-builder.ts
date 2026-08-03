@@ -1,5 +1,7 @@
 import type {
-  JaraokeFile,
+  Lyric,
+  LyricLine,
+  LyricWord,
   UltrastarFile,
   UltrastarNote,
 } from 'jaraoke-shared/types';
@@ -29,9 +31,9 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
     return groups;
   };
 
-  const toJaraoke = (): JaraokeFile['lyrics'] => {
+  const toJaraoke = (): Lyric[] => {
     const noteGroups = constructNotes();
-    const lines: JaraokeFile['lyrics'][number]['lines'] = [];
+    const lines: LyricLine[] = [];
 
     for (const group of noteGroups) {
       const filteredGroup = group.reduce<LyricNote[]>((acc, note) => {
@@ -52,9 +54,9 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
       }
 
       const firstPhraseStartAtMs = filteredGroup[0].start + gap;
-      const words: JaraokeFile['lyrics'][number]['lines'][number]['words'] = [];
+      const words: LyricWord[] = [];
       let currentWord:
-        | JaraokeFile['lyrics'][number]['lines'][number]['words'][number]
+        | LyricWord
         | null = null;
 
       const pushCurrentWord = () => {

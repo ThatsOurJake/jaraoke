@@ -202,35 +202,57 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
     const canvasElement = document.getElementById(
       'visual-canvas',
     ) as HTMLCanvasElement | null;
-    const audioElement = document.getElementById(
+    const mainAudioEl = document.getElementById(
       'main-audio',
     ) as HTMLAudioElement | null;
 
-    if (!canvasElement || !audioElement) {
+    if (!canvasElement || !mainAudioEl) {
       return;
     }
 
-    const audioContext = new AudioContext();
+    // All tracks share one AudioContext so they are on the same clock and pipeline
+    const audioContext = new AudioContext({ latencyHint: 'playback' });
     audioContextRef.current = audioContext;
-    const sourceNode = audioContext.createMediaElementSource(audioElement!);
+
+    let mainSourceNode: MediaElementAudioSourceNode | null = null;
+
+    for (const track of tracks) {
+      const id = track.isMainTrack ? 'main-audio' : `audio-${track.name}`;
+      const el = document.getElementById(id) as HTMLAudioElement | null;
+
+      if (!el) {
+        continue;
+      }
+
+      const source = audioContext.createMediaElementSource(el);
+      const gain = audioContext.createGain();
+      gain.gain.value = track.volume;
+      source.connect(gain);
+      gain.connect(audioContext.destination);
+
+      if (track.isMainTrack) {
+        mainSourceNode = source;
+      }
+    }
 
     const canvasWidth = window.innerWidth;
     const canvasHeight = window.innerHeight;
 
-    canvasElement!.width = canvasWidth;
-    canvasElement!.height = canvasHeight;
+    canvasElement.width = canvasWidth;
+    canvasElement.height = canvasHeight;
 
     visualiser.current = butterchurn.createVisualizer(
       audioContext,
-      canvasElement!,
+      canvasElement,
       {
         width: canvasWidth,
         height: canvasHeight,
       },
     );
 
-    sourceNode.connect(audioContext.destination);
-    visualiser.current.connectAudio(sourceNode);
+    if (mainSourceNode) {
+      visualiser.current.connectAudio(mainSourceNode);
+    }
 
     const preset = getPreset().preset;
     visualiser.current.loadPreset(preset, 0.0);
@@ -239,7 +261,7 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
     if (onLoaded) {
       onLoaded();
     }
-  }, []);
+  }, [tracks]);
 
   useEffect(() => {
     setupVisualiser();
@@ -264,7 +286,6 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
           key={track.fileName}
           src={track.url}
           id={track.isMainTrack ? 'main-audio' : `audio-${track.name}`}
-          volume={track.volume}
         />
       ))}
       <canvas id="visual-canvas" className="antialiased fixed z-10" />

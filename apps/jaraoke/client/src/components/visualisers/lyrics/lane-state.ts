@@ -83,26 +83,6 @@ const resolveStableCurrentLineIndex = (
   return currentIndex;
 };
 
-const findHeldHistoryLineIndices = (
-  lane: PreparedLane,
-  songTimeMs: number,
-  currentLineIndex: number,
-): number[] => {
-  if (currentLineIndex <= 0) {
-    return [];
-  }
-
-  const output: number[] = [];
-
-  for (let index = 0; index < currentLineIndex; index++) {
-    if (songTimeMs <= lane.lines[index].holdUntilMs) {
-      output.push(index);
-    }
-  }
-
-  return output;
-};
-
 const findNextPreviewIndices = (
   lane: PreparedLane,
   songTimeMs: number,
@@ -181,11 +161,6 @@ export const resolveLaneRows = ({
   );
 
   if (currentIndex >= 0) {
-    const heldHistory = findHeldHistoryLineIndices(
-      lane,
-      songTimeMs,
-      currentIndex,
-    );
     const previewIndices = findNextPreviewIndices(
       lane,
       songTimeMs,
@@ -193,22 +168,10 @@ export const resolveLaneRows = ({
       maxVisibleLines,
       previewWindowMs,
     );
-    const reservedPreviewRows = previewIndices.length > 0 ? 1 : 0;
-    const maxHistoryRows = Math.max(
-      0,
-      maxVisibleLines - 1 - reservedPreviewRows,
-    );
-    const visibleHistory = heldHistory.slice(-maxHistoryRows);
-    const maxPreviewRows = maxVisibleLines - 1 - visibleHistory.length;
-    const visiblePreviews = previewIndices.slice(0, maxPreviewRows);
+    const visiblePreviews = previewIndices.slice(0, maxVisibleLines - 1);
 
     return {
       rows: [
-        ...visibleHistory.map((index, historyIndex) => ({
-          index,
-          offset: historyIndex - visibleHistory.length,
-          role: 'past' as const,
-        })),
         {
           index: currentIndex,
           offset: 0,

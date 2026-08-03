@@ -4,13 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5174",
+    "dev": "vite --port 5174 --host",
     "build": "tsc -b && vite build --base=/public/",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mdi/js": "^7.4.47",
+    "@mdi/react": "^1.6.1",
+    "@tailwindcss/vite": "^4.1.14",
     "jaraoke-shared": "workspace:*",
-    "preact": "^10.27.2"
+    "preact": "^10.27.2",
+    "tailwindcss": "^4.1.14"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",

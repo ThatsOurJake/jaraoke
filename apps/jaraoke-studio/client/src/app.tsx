@@ -1,59 +1,81 @@
-import { useEffect, useState } from 'preact/hooks';
+import { KaraokeTimeline } from './components/timeline';
+import { WordPropertiesPanel } from './components/word-properties-panel';
 import {
-  getSharedGreeting,
-  type StudioHealthResponse,
-} from 'jaraoke-shared/hello';
+  DEFAULT_ZOOM_PX_PER_SECOND,
+  MAX_LANES,
+  MIN_WORD_DURATION_MS,
+  SONG_DURATION_MS,
+  useTimelineStore,
+} from './stores/timeline-store';
 
 export const App = () => {
-  const [health, setHealth] = useState<StudioHealthResponse | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await fetch('/api/health');
-        if (!response.ok) {
-          throw new Error(`Health request failed with ${response.status}`);
-        }
-
-        const body = (await response.json()) as StudioHealthResponse;
-        setHealth(body);
-      } catch (error) {
-        setErrorMessage(
-          error instanceof Error ? error.message : 'Unknown health error',
-        );
-      }
-    };
-
-    void load();
-  }, []);
+  const {
+    lanes,
+    words,
+    selectedWord,
+    selectedWordId,
+    currentTimeMs,
+    zoomPxPerSecond,
+    setCurrentTimeMs,
+    setZoomPxPerSecond,
+    setSelectedWordId,
+    addLane,
+    renameLane,
+    addWord,
+    changeWordTiming,
+    updateWordText,
+  } = useTimelineStore();
 
   return (
-    <main class="studio-shell">
-      <section class="studio-card">
-        <p class="studio-eyebrow">Jaraoke Monorepo Migration</p>
-        <h1>Jaraoke Studio</h1>
-        <p class="studio-copy">
-          This is the placeholder studio app shell. The full authoring workflow
-          comes later; this only proves the split, launcher wiring, and shared
-          package access.
-        </p>
-        <dl class="studio-status-list">
-          <div>
-            <dt>Shared helper</dt>
-            <dd>{getSharedGreeting('jaraoke-studio client')}</dd>
+    <main class="flex h-full flex-col bg-slate-50 text-slate-800">
+      <div class="flex min-h-0 grow border-b border-slate-300">
+        <div class="w-2/5 border-r border-slate-300 p-4">
+          <div class="aspect-video rounded border border-slate-300 bg-white p-3">
+            <h2 class="text-sm font-semibold">Visualiser</h2>
+            <p class="mt-2 text-xs text-slate-500">
+              Preview renderer lives outside this MVP.
+            </p>
           </div>
-          <div>
-            <dt>Backend status</dt>
-            <dd>{health?.status ?? 'loading'}</dd>
+        </div>
+        <div class="w-3/5 p-4">
+          <div class="rounded border border-slate-300 bg-white p-3">
+            <h2 class="text-sm font-semibold">File Explorer</h2>
+            <p class="mt-2 text-xs text-slate-500">
+              Project and lyric file tools come next.
+            </p>
           </div>
-          <div>
-            <dt>Backend app name</dt>
-            <dd>{health?.appName ?? 'pending'}</dd>
-          </div>
-        </dl>
-        {errorMessage ? <p class="studio-error">{errorMessage}</p> : null}
-      </section>
+        </div>
+      </div>
+
+      <div class="flex h-[42%] min-h-80 gap-3 p-3">
+        <div class="min-w-0 grow">
+          <KaraokeTimeline
+            durationMs={SONG_DURATION_MS}
+            currentTimeMs={currentTimeMs}
+            maxLanes={MAX_LANES}
+            lanes={lanes}
+            words={words}
+            selectedWordId={selectedWordId}
+            zoomPxPerSecond={zoomPxPerSecond}
+            defaultZoomPxPerSecond={DEFAULT_ZOOM_PX_PER_SECOND}
+            onSeek={setCurrentTimeMs}
+            onSelectWord={setSelectedWordId}
+            onChangeWordTiming={changeWordTiming}
+            onAddLane={addLane}
+            onRenameLane={renameLane}
+            onChangeZoom={setZoomPxPerSecond}
+            onAddWord={addWord}
+          />
+        </div>
+
+        <WordPropertiesPanel
+          selectedWord={selectedWord}
+          songDurationMs={SONG_DURATION_MS}
+          minWordDurationMs={MIN_WORD_DURATION_MS}
+          onChangeWordTiming={changeWordTiming}
+          onUpdateWordText={updateWordText}
+        />
+      </div>
     </main>
   );
 };

@@ -1,10 +1,10 @@
 import path from 'node:path';
 import getAppDataPath from 'appdata-path';
+import { isProd } from 'jaraoke-shared/server/utils/is-prod';
 
 export const PORT = parseInt(process.env['PORT'] ?? '9897', 10);
 export const HOST = process.env['HOST'] ?? '0.0.0.0';
-export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-export const APP_NAME = IS_PRODUCTION ? 'jaraoke' : 'jaraoke-dev';
+export const APP_NAME = isProd() ? 'jaraoke' : 'jaraoke-dev';
 
 export const directories = (() => {
   const rootDir = getAppDataPath(APP_NAME);

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { directories } from '../constants';
-import { createLogger } from '../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('bootstrap:create-directories');
 

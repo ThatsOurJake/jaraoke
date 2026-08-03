@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import path, { basename } from 'node:path';
 import { directories, VIDEO_FILE_NAME } from '../../constants';
 import { store } from '../../data/store';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('ffmpeg:transcode-to-mp4');
 

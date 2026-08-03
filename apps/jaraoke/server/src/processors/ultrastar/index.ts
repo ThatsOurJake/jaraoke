@@ -8,7 +8,7 @@ import {
 } from '../../constants';
 import { imageToBase64 } from '../../utils/image-to-base64';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { moveFiles } from '../../utils/move-files';
 import type { Processor } from '../processor-map';
 import { usLyricsBuilder } from './us-lyrics-builder';

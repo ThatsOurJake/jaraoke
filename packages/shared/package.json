@@ -5,10 +5,21 @@
   "main": "index.js",
   "exports": {
     "./types": "./types.ts",
-    "./hello": "./hello.ts"
+    "./server/utils/logger": "./server/utils/logger.ts",
+    "./server/utils/is-prod": "./server/utils/is-prod.ts",
+    "./server/middlewares/route-response-time": "./server/middlewares/route-response-time.ts",
+    "./server/*.js": "./server/*.ts",
+    "./server/*": "./server/*.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.15.0"
+  "packageManager": "pnpm@10.15.0",
+  "dependencies": {
+    "pino": "^10.0.0",
+    "pino-pretty": "^13.1.1"
+  },
+  "devDependencies": {
+    "@types/koa": "^3.0.0"
+  }
 }

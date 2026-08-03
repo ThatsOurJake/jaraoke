@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
 import { directories, INFO_FILE_NAME } from '../constants';
 import { store } from '../data/store';
-import { createLogger } from '../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('bootstrap:read-karaoke-files');
 

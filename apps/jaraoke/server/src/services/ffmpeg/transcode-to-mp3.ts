@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import path, { basename, extname } from 'node:path';
 import { directories } from '../../constants';
 import { store } from '../../data/store';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('ffmpeg:transcode-to-mp4');
 

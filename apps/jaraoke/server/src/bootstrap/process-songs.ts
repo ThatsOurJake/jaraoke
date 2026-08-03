@@ -7,7 +7,7 @@ import {
   determineFolderType,
   FolderType,
 } from '../utils/determine-folder-type';
-import { createLogger } from '../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 interface ReadDirectoriesResult {
   toBeProcessed: { dir: string; type: FolderType }[];

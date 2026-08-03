@@ -7,7 +7,7 @@ import type {
   VolumeOverride,
 } from 'jaraoke-shared/types';
 import { assetDirectories, directories } from '../../constants';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 import { rng } from '../../utils/rng';
 
 const logger = createLogger('create-lavfi-stream');

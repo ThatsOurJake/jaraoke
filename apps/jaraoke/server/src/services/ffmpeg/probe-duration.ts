@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 
 import { store } from '../../data/store';
-import { createLogger } from '../../utils/logger';
+import { createLogger } from 'jaraoke-shared/server/utils/logger';
 
 const logger = createLogger('probe-duration');
 

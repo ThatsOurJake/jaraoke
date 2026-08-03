@@ -105,32 +105,6 @@ export class LyricsCanvasDrawer {
     this.ctx.restore();
   }
 
-  public drawDuetLaneCountdown(
-    state: InstrumentalBreakState,
-    centerX: number,
-    y: number,
-  ): void {
-    const barWidth = Math.min(220, Math.round(this.canvas.width * 0.24));
-    const barHeight = 8;
-    const x = centerX - barWidth / 2;
-
-    this.ctx.save();
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    this.roundRect(x, y, barWidth, barHeight, 6, true);
-
-    this.ctx.fillStyle = '#FFFFFF';
-    this.roundRect(x, y, barWidth * state.progress, barHeight, 6, true);
-
-    this.ctx.font = `600 16px ${BASE_FONT_FAMILY}`;
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    this.ctx.fillText(`${Math.ceil(state.remainingMs / 1000)}s`, centerX, y - 14);
-
-    this.ctx.restore();
-  }
-
   public drawLaneInstrumentalBreak(
     state: InstrumentalBreakState,
     centerY: number,

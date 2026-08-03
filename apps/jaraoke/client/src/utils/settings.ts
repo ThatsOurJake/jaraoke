@@ -1,7 +1,5 @@
 interface JARAOKE {
-  settings: {
-    player: 'mpv' | 'web';
-  };
+  settings: {};
 }
 
 declare global {
@@ -11,9 +9,7 @@ declare global {
 }
 
 const defaultJaraoke: JARAOKE = {
-  settings: {
-    player: 'mpv',
-  },
+  settings: {},
 };
 
 export const getSettings = (): JARAOKE['settings'] => {

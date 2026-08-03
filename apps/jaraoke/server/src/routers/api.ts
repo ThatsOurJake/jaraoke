@@ -1,11 +1,9 @@
 import fs, { createReadStream } from 'node:fs';
 import path from 'node:path';
 import Router from '@koa/router';
-import type { PlayPayload } from 'jaraoke-shared/types';
 
 import { directories } from '../constants';
 import { store } from '../data/store';
-import { playKaraoke } from '../services/mpv/play-karaoke';
 import { fileExtToMimeTypes } from '../utils/mime-type';
 
 export const apiRouter = new Router({
@@ -86,35 +84,6 @@ apiRouter.get('/song/:id/:fileName', (ctx) => {
     ctx.set('Content-Length', fileSize.toString());
     ctx.body = createReadStream(filePath);
   }
-});
-
-apiRouter.post('/play', (ctx) => {
-  const payload = ctx.request.body as PlayPayload;
-
-  if (!payload.id) {
-    ctx.status = 400;
-    ctx.body = {
-      errors: ['Id is required'],
-    };
-
-    return;
-  }
-
-  const foundSong = store.karaokeFiles.find((x) => x.id === payload.id);
-
-  if (!foundSong) {
-    ctx.status = 404;
-
-    ctx.body = {
-      errors: [`Cannot find tracks with id: ${payload.id}`],
-    };
-
-    return;
-  }
-
-  playKaraoke(foundSong, payload.trackVolumes);
-
-  ctx.status = 202;
 });
 
 apiRouter.get('/client-settings', (ctx) => {

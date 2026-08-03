@@ -7,7 +7,6 @@ import type {
 import { useCallback, useEffect, useRef } from 'preact/hooks';
 import { PLACEHOLDER_ALBUM_COVER, SONG_STORAGE_KEY } from '../../constants';
 import { formatTime } from '../../utils/format-time';
-import { getSettings } from '../../utils/settings';
 import { NormalButton } from '../buttons/normal-btn';
 import { MicrophoneIcon } from '../icons/microphone';
 import { TrackList } from '../track-list';
@@ -17,7 +16,6 @@ interface SongPanelProps {
 }
 
 export const SongPanel = ({ selectedSong }: SongPanelProps) => {
-  const settings = getSettings();
   const { metadata } = selectedSong || {};
   const tracks = Object.hasOwn(selectedSong || {}, 'tracks')
     ? (selectedSong as JaraokeFile).tracks
@@ -54,27 +52,8 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
       trackVolumes: volumeOverrides.current,
     };
 
-    if (settings.player === 'web') {
-      localStorage.setItem(SONG_STORAGE_KEY, JSON.stringify(playPayload));
-      location.href = '/play';
-    } else {
-      try {
-        const req = await fetch('/api/play', {
-          body: JSON.stringify(playPayload),
-          headers: {
-            'content-type': 'application/json',
-          },
-          method: 'POST',
-        });
-
-        if (req.status !== 202) {
-          throw new Error(`Status is not 202 - ${req.status}`);
-        }
-      } catch (err) {
-        // TODO front end to backend logging
-        console.error(err);
-      }
-    }
+    localStorage.setItem(SONG_STORAGE_KEY, JSON.stringify(playPayload));
+    location.href = '/play';
   }, [selectedSong]);
 
   const imgSrc =

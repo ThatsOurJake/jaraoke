@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path, { extname } from 'node:path';
-import { parseFile } from 'music-metadata';
 import { directories, VIDEO_FILE_NAME } from '../../constants';
+import { probeDuration } from '../../services/ffmpeg/probe-duration';
 import { probeVideoCodec } from '../../services/ffmpeg/probe-video-codec';
 import { transcodeToMp4 } from '../../services/ffmpeg/transcode-to-mp4';
 import { createJaraokeInfoFile } from '../../utils/jaraoke-info-file';
@@ -60,10 +60,7 @@ export const videoProcessor: Processor = async (
   }
 
   const fileName = videoPath.replace(ext, '');
-  const fileMetaData = await parseFile(path.join(directory, videoPath));
-  const {
-    format: { duration },
-  } = fileMetaData;
+  const duration = await probeDuration(path.join(directory, videoPath));
 
   const infoFileLocation = createJaraokeInfoFile(
     {
@@ -72,6 +69,7 @@ export const videoProcessor: Processor = async (
         duration: Math.floor(duration || 0),
       },
       video: VIDEO_FILE_NAME,
+      type: 'video',
     },
     directories.temp,
     reimportId,

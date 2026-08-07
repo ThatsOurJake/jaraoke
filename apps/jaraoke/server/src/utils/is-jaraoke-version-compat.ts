@@ -1,11 +1,30 @@
-import { VERSIONS } from '../constants';
+import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
 
-// TODO: Better detection of if this file is incompat,
-// right now we blanket everything which will also include videos
-export const isJaraokeVersionCompat = (jaraokeFileVersion: number) => {
-  if (jaraokeFileVersion < VERSIONS.jaraokeInfo) {
-    return false;
-  }
+interface BreakingChange {
+  version: number;
+  affects: 'all' | CombinedJaraokeFiles['type'];
+}
 
-  return true;
+const BREAKING_CHANGES: BreakingChange[] = [
+  {
+    version: 4,
+    affects: 'all',
+  },
+];
+
+const getRequiredVersionForType = (type: CombinedJaraokeFiles['type']) =>
+  BREAKING_CHANGES.reduce((requiredVersion, breakingChange) => {
+    const doesAffectType =
+      breakingChange.affects === 'all' || breakingChange.affects.includes(type);
+
+    if (!doesAffectType) {
+      return requiredVersion;
+    }
+
+    return Math.max(requiredVersion, breakingChange.version);
+  }, 1);
+
+export const isJaraokeVersionCompat = (jaraokeFile: CombinedJaraokeFiles) => {
+  const requiredVersion = getRequiredVersionForType(jaraokeFile.type);
+  return jaraokeFile.version >= requiredVersion;
 };

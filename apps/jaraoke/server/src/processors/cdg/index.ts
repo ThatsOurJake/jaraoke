@@ -48,6 +48,7 @@ export const cdgProcessor: Processor = async (
         duration: Math.floor(duration || 0),
       },
       video: CDG_COMBINED_FILE_NAME,
+      type: 'cdg',
     },
     directories.temp,
     reimportId,

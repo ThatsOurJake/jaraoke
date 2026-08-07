@@ -38,13 +38,15 @@ export const SettingsScreen = () => {
   return (
     <Wrapper>
       <div className="w-full bg-white">
-        <div>
+        <div className="h-full flex flex-col p-2">
           <p>Outdated songs</p>
-          <SongList
-            songs={songs}
-            onSongSelected={onSongClick}
-            selectedSongId="x"
-          />
+          <div className="overflow-y-auto grow">
+            <SongList
+              songs={songs}
+              onSongSelected={onSongClick}
+              selectedSongId="x"
+            />
+          </div>
         </div>
       </div>
     </Wrapper>

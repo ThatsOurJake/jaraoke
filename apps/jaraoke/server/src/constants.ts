@@ -36,5 +36,5 @@ export const US_TEMP_AUDIO_FILE = 'main.mp3';
 
 export const VERSIONS = {
   settings: 3,
-  jaraokeInfo: 3,
+  jaraokeInfo: 4,
 };

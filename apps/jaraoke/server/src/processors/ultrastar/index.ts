@@ -67,6 +67,7 @@ export const ultastarProcessor: Processor = async (
         coverPhoto: cover
           ? imageToBase64(path.join(directory, cover))
           : undefined,
+        type: 'us',
       },
       directories.temp,
       reimportId,

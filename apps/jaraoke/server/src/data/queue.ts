@@ -1,3 +1,6 @@
+import type pino from 'pino';
+import { createLogger } from '../utils/logger';
+
 type ProcessingCallback<T> =
   | ((processing: T) => void)
   | ((processing: T) => Promise<void>);
@@ -7,9 +10,11 @@ export class Queue<T> {
   private isProcessing: boolean = false;
 
   private callbackProcessItem: ProcessingCallback<T>;
+  private logger: pino.Logger;
 
-  constructor(cbProcessItem: ProcessingCallback<T>) {
+  constructor(cbProcessItem: ProcessingCallback<T>, queueName: string) {
     this.callbackProcessItem = cbProcessItem;
+    this.logger = createLogger(`${queueName}-queue`);
   }
 
   private async processNextItem() {
@@ -34,7 +39,9 @@ export class Queue<T> {
         try {
           await this.processNextItem();
         } catch (error) {
-          console.error('Queue item processing failed:', error);
+          this.logger.error({
+            error,
+          });
         }
       }
     } finally {

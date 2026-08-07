@@ -149,6 +149,7 @@ interface BaseJarokeFIle {
   coverPhoto?: string;
   parentDir?: string;
   isCompatibleWithCurrentVersion: boolean;
+  type: 'video' | 'cdg' | 'kfn' | 'us' | 'lrc';
 }
 
 export type LyricDisplayType = 'top' | 'bottom' | 'translation';

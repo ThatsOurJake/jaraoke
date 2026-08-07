@@ -144,6 +144,7 @@ const processQueueItem = async (item: Required<CombinedJaraokeFiles>) => {
 
 const processQueue = new Queue<Required<CombinedJaraokeFiles>>(
   processQueueItem,
+  'song-processing',
 );
 
 export const reprocessSong = (file: Required<CombinedJaraokeFiles>) => {

@@ -102,6 +102,7 @@ export const kfnProcessor: Processor = async (
         tracks: mappedTracks,
         lyricsType,
         lyrics,
+        type: 'kfn',
       },
       directories.temp,
       reimportId,

@@ -91,6 +91,7 @@ export const lrcProcessor: Processor = async (
         coverPhoto: albumCover
           ? bufferToBase64(albumCover.data, albumCover.format)
           : undefined,
+        type: 'lrc',
       },
       directories.temp,
       reimportId,

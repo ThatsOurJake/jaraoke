@@ -10,6 +10,16 @@ const logger = createLogger('bootstrap:settings-file');
 const migrate = (ini: Settings) => {
   let hasMigrations = false;
 
+  if (ini.version < 3) {
+    hasMigrations = true;
+    
+    if (ini.keepOriginalFiles === undefined) {
+      ini.keepOriginalFiles = true;
+    }
+
+    ini.version = 3;
+  }
+
   if (hasMigrations) {
     logger.info('Migrated settings file');
     saveSettingsFile(ini);
@@ -29,7 +39,8 @@ const readSettingsFile = () => {
 const initialSettings: Settings = {
   ffmpegPath: 'ffmpeg',
   ffprobePath: 'ffprobe',
-  version: VERSIONS.settings.toString(),
+  keepOriginalFiles: true,
+  version: VERSIONS.settings,
 };
 
 const createSettingsFile = () => {

@@ -6,6 +6,24 @@ import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('ffmpeg:transcode-to-mp4');
 
+const logFfmpegStream = (type: 'stdout' | 'stderr', chunk: Buffer) => {
+  const output = chunk.toString().trim();
+
+  if (!output) {
+    return;
+  }
+
+  for (const line of output.split('\n')) {
+    const cleanLine = line.trim();
+
+    if (!cleanLine) {
+      continue;
+    }
+
+    logger.debug(`[ffmpeg:${type}] ${cleanLine}`);
+  }
+};
+
 export const transcodeToMp4 = (fullVideoPath: string): Promise<void> => {
   const output = path.join(directories.temp, VIDEO_FILE_NAME);
   const { ffmpegPath } = store.settings;
@@ -37,6 +55,14 @@ export const transcodeToMp4 = (fullVideoPath: string): Promise<void> => {
     ];
 
     const ffmpeg = spawn(ffmpegPath, args, { env: { ...process.env } });
+
+    ffmpeg.stdout?.on('data', (data: Buffer) => {
+      logFfmpegStream('stdout', data);
+    });
+
+    ffmpeg.stderr?.on('data', (data: Buffer) => {
+      logFfmpegStream('stderr', data);
+    });
 
     ffmpeg.on('close', (code) => {
       const duration = (Date.now() - startTime) / 1000;

@@ -37,6 +37,11 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
   const visualiser = useRef<Visualizer>(null);
   const songStarted = useRef(false);
   const audioContextRef = useRef<AudioContext>(null);
+  const sourceNodes = useRef(
+    new WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>(),
+  );
+  const gainNodes = useRef(new WeakMap<HTMLAudioElement, GainNode>());
+  const visualiserConnected = useRef(false);
 
   const clamp = (value: number, min: number, max: number) =>
     Math.max(min, Math.min(max, value));
@@ -58,9 +63,9 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
   };
 
   const syncAudioTracks = () => {
-    const masterTrack = document.getElementById('main-audio') as
-      | HTMLAudioElement
-      | null;
+    const masterTrack = document.getElementById(
+      'main-audio',
+    ) as HTMLAudioElement | null;
 
     if (!masterTrack || masterTrack.paused) {
       return;
@@ -167,36 +172,39 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
     resetAudio();
   }, [resetAudio]);
 
-  const onKaraokeEvent = useCallback((ev: Event) => {
-    const event = ev as KaraokeEvent;
+  const onKaraokeEvent = useCallback(
+    (ev: Event) => {
+      const event = ev as KaraokeEvent;
 
-    if (event.eventType === 'start') {
-      prepareForSequenceStart();
-      return;
-    }
-
-    if (event.eventType === 'song-start') {
-      startSongPlayback();
-      return;
-    }
-
-    if (event.eventType === 'play') {
-      if (!songStarted.current) {
+      if (event.eventType === 'start') {
+        prepareForSequenceStart();
         return;
       }
 
-      playAudio();
-      startVisualFrame();
-      startSyncLoop();
-      return;
-    }
+      if (event.eventType === 'song-start') {
+        startSongPlayback();
+        return;
+      }
 
-    if (event.eventType === 'pause') {
-      pauseAudio();
-      stopVisualFrame();
-      stopSyncLoop();
-    }
-  }, [pauseAudio, playAudio, prepareForSequenceStart, startSongPlayback]);
+      if (event.eventType === 'play') {
+        if (!songStarted.current) {
+          return;
+        }
+
+        playAudio();
+        startVisualFrame();
+        startSyncLoop();
+        return;
+      }
+
+      if (event.eventType === 'pause') {
+        pauseAudio();
+        stopVisualFrame();
+        stopSyncLoop();
+      }
+    },
+    [pauseAudio, playAudio, prepareForSequenceStart, startSongPlayback],
+  );
 
   const setupVisualiser = useCallback(() => {
     const canvasElement = document.getElementById(
@@ -211,7 +219,8 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
     }
 
     // All tracks share one AudioContext so they are on the same clock and pipeline
-    const audioContext = new AudioContext({ latencyHint: 'playback' });
+    const audioContext =
+      audioContextRef.current ?? new AudioContext({ latencyHint: 'playback' });
     audioContextRef.current = audioContext;
 
     let mainSourceNode: MediaElementAudioSourceNode | null = null;
@@ -224,11 +233,22 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
         continue;
       }
 
-      const source = audioContext.createMediaElementSource(el);
-      const gain = audioContext.createGain();
+      let source = sourceNodes.current.get(el);
+      let gain = gainNodes.current.get(el);
+
+      // A media element can only be used to create one MediaElementSourceNode.
+      if (!source || !gain) {
+        source = audioContext.createMediaElementSource(el);
+        gain = audioContext.createGain();
+        source.connect(gain);
+        gain.connect(audioContext.destination);
+        sourceNodes.current.set(el, source);
+        gainNodes.current.set(el, gain);
+      }
+
+      console.log(track.volume);
+
       gain.gain.value = track.volume;
-      source.connect(gain);
-      gain.connect(audioContext.destination);
 
       if (track.isMainTrack) {
         mainSourceNode = source;
@@ -241,17 +261,20 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
     canvasElement.width = canvasWidth;
     canvasElement.height = canvasHeight;
 
-    visualiser.current = butterchurn.createVisualizer(
-      audioContext,
-      canvasElement,
-      {
-        width: canvasWidth,
-        height: canvasHeight,
-      },
-    );
+    if (!visualiser.current) {
+      visualiser.current = butterchurn.createVisualizer(
+        audioContext,
+        canvasElement,
+        {
+          width: canvasWidth,
+          height: canvasHeight,
+        },
+      );
+    }
 
-    if (mainSourceNode) {
+    if (mainSourceNode && !visualiserConnected.current) {
       visualiser.current.connectAudio(mainSourceNode);
+      visualiserConnected.current = true;
     }
 
     const preset = getPreset().preset;
@@ -276,12 +299,16 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
       stopSyncLoop();
       audioContextRef.current?.close();
       audioContextRef.current = null;
+      sourceNodes.current = new WeakMap();
+      gainNodes.current = new WeakMap();
+      visualiserConnected.current = false;
     };
   }, [onKaraokeEvent]);
 
   return (
     <>
       {tracks.map((track) => (
+        // biome-ignore lint/a11y/useMediaCaption: Cannot provide captions for this audio src
         <audio
           key={track.fileName}
           src={track.url}

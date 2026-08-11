@@ -52,14 +52,14 @@ export const HomeScreen = () => {
 
   return (
     <Wrapper>
-      <div className="overflow-y-scroll h-full max-h-full w-1/2 px-4 py-2">
+      <div className="overflow-y-scroll h-full max-h-full w-1/2 md:w-2/3 xl:w-3/4 px-4 py-2 scrollbar-none">
         <SongList
           songs={songs}
           onSongSelected={onSongSelected}
           selectedSongId={selectedSongId}
         />
       </div>
-      <div className="w-1/2 px-4 py-2 h-full">
+      <div className="w-1/2 md:w-1/3 xl:w-1/4 px-4 py-2 h-full">
         <SongPanel selectedSong={selectedSong} />
       </div>
     </Wrapper>

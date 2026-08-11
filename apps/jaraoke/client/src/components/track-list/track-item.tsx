@@ -1,23 +1,30 @@
 import type { JaraokeTrack } from 'jaraoke-shared/types';
-import { useCallback } from 'preact/hooks';
-
-import { Toggle } from '../toggle';
+import { useCallback, useState } from 'preact/hooks';
+import { VolumeSlider } from '../volume-slider';
 
 interface TrackItemProps {
   track: JaraokeTrack;
-  onChange: (trackName: string, checked: boolean) => void;
+  onChange: (trackName: string, volume: number) => void;
 }
 
 export const TrackItem = ({ onChange, track }: TrackItemProps) => {
-  const onLocalChange = useCallback(
-    (value: boolean) => onChange(track.fileName, value),
-    [],
-  );
+  const [localSliderValue, setLocalSliderValue] = useState(1);
+
+  const onLocalChange = useCallback((value: number) => {
+    const clampedTwoDecimals = Math.round(value * 100) / 100;
+    setLocalSliderValue(clampedTwoDecimals);
+    onChange(track.fileName, clampedTwoDecimals);
+  }, []);
 
   return (
-    <li className="w-full flex justify-between" id={track.fileName}>
-      <p>{track.name}</p>
-      <Toggle checked onChange={onLocalChange} />
+    <li className="w-full" id={track.fileName}>
+      <div className="flex flex-row justify-between">
+        <p>{track.name}</p>
+        <p className="text-sm font-inter text-purple-300 font-semibold">
+          {Math.floor(localSliderValue * 100)}%
+        </p>
+      </div>
+      <VolumeSlider onChange={onLocalChange} currentValue={localSliderValue} />
     </li>
   );
 };

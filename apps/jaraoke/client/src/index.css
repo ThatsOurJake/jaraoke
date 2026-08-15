@@ -39,6 +39,7 @@
   --font-sora: "Sora";
   --font-bricolage: "Bricolage Grotesque";
   --font-noto-emoji: "Noto Emoji";
+  --aspect-card: 1 / 1.4;
 }
 
 :root {

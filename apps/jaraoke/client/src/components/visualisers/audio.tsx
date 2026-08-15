@@ -246,8 +246,6 @@ export const AudioVisualiser = ({ tracks, onLoaded }: AudioVisualiserProps) => {
         gainNodes.current.set(el, gain);
       }
 
-      console.log(track.volume);
-
       gain.gain.value = track.volume;
 
       if (track.isMainTrack) {

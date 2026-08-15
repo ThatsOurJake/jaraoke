@@ -12,14 +12,16 @@ export const SongList = ({
   onSongSelected,
   selectedSongId,
 }: SongListProps) => (
-  <ul className="w-full flex gap-y-4 flex-col">
-    {songs.map((song) => (
-      <SongItem
-        song={song}
-        key={song.id}
-        onSongSelected={onSongSelected}
-        isSelected={selectedSongId === song.id}
-      />
-    ))}
-  </ul>
+  <>
+    <div className="grid grid-cols-4 xl:grid-cols-8">
+      {songs.map((song) => (
+        <SongItem
+          song={song}
+          key={song.id}
+          onSongSelected={onSongSelected}
+          isSelected={selectedSongId === song.id}
+        />
+      ))}
+    </div>
+  </>
 );

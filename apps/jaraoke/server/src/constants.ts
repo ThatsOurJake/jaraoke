@@ -1,5 +1,6 @@
 import path from 'node:path';
 import getAppDataPath from 'appdata-path';
+import type { BreakingChange } from './utils/is-jaraoke-version-compat';
 
 export const PORT = parseInt(process.env['PORT'] ?? '9897', 10);
 export const HOST = process.env['HOST'] ?? '0.0.0.0';
@@ -36,5 +37,16 @@ export const US_TEMP_AUDIO_FILE = 'main.mp3';
 
 export const VERSIONS = {
   settings: 3,
-  jaraokeInfo: 4,
+  jaraokeInfo: 5,
 };
+
+export const JARAOKE_BREAKING_CHANGES: BreakingChange[] = [
+  {
+    version: 4,
+    affects: 'all',
+  },
+  {
+    version: 5,
+    affects: 'us',
+  },
+];

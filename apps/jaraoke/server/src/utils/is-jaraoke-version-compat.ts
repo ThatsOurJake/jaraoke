@@ -1,19 +1,13 @@
 import type { CombinedJaraokeFiles } from 'jaraoke-shared/types';
+import { JARAOKE_BREAKING_CHANGES } from '../constants';
 
-interface BreakingChange {
+export interface BreakingChange {
   version: number;
   affects: 'all' | CombinedJaraokeFiles['type'];
 }
 
-const BREAKING_CHANGES: BreakingChange[] = [
-  {
-    version: 4,
-    affects: 'all',
-  },
-];
-
 const getRequiredVersionForType = (type: CombinedJaraokeFiles['type']) =>
-  BREAKING_CHANGES.reduce((requiredVersion, breakingChange) => {
+  JARAOKE_BREAKING_CHANGES.reduce((requiredVersion, breakingChange) => {
     const doesAffectType =
       breakingChange.affects === 'all' || breakingChange.affects.includes(type);
 

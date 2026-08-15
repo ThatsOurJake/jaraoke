@@ -6,8 +6,6 @@ import type {
   UltrastarNote,
 } from 'jaraoke-shared/types';
 
-type LyricNote = UltrastarNote & { text: string };
-
 const DEFAULT_LINE_LEAD_IN_MS = 1000;
 
 export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
@@ -36,28 +34,17 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
     const lines: LyricLine[] = [];
 
     for (const group of noteGroups) {
-      const filteredGroup = group.reduce<LyricNote[]>((acc, note) => {
-        if (note.endOfPhrase || note.text === '~' || !note.text) {
-          return acc;
-        }
+      const firstNote = group.find(
+        (n) => !n.endOfPhrase && n.text && n.text !== '~',
+      );
 
-        acc.push({
-          ...note,
-          text: note.text.replace(/~/g, ''),
-        });
-
-        return acc;
-      }, []);
-
-      if (filteredGroup.length === 0) {
+      if (!firstNote) {
         continue;
       }
 
-      const firstPhraseStartAtMs = filteredGroup[0].start + gap;
+      const firstPhraseStartAtMs = firstNote.start + gap;
       const words: LyricWord[] = [];
-      let currentWord:
-        | LyricWord
-        | null = null;
+      let currentWord: LyricWord | null = null;
 
       const pushCurrentWord = () => {
         if (!currentWord || currentWord.syllables.length === 0) {
@@ -68,10 +55,19 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
         currentWord = null;
       };
 
-      for (const word of filteredGroup) {
-        const hasLeadingSpace = /^\s+/.test(word.text);
-        const hasTrailingSpace = /\s+$/.test(word.text);
-        const syllable = word.text.trim();
+      for (const note of group) {
+        if (note.endOfPhrase) continue;
+
+        // Standalone ~ is a hold note; treat as a word boundary
+        if (!note.text || note.text === '~') {
+          pushCurrentWord();
+          continue;
+        }
+
+        const text = note.text.replace(/~/g, '');
+        const hasLeadingSpace = /^\s+/.test(note.text);
+        const hasTrailingSpace = /\s+$/.test(note.text);
+        const syllable = text.trim();
 
         if (!syllable) {
           continue;
@@ -89,7 +85,7 @@ export const usLyricsBuilder = (ultrastarFile: UltrastarFile) => {
 
         currentWord.syllables.push({
           phrase: syllable,
-          startAtMs: word.start + gap,
+          startAtMs: note.start + gap,
           effect: 'highlight' as const,
         });
 

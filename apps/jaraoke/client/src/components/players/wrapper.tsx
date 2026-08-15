@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/a11y/noStaticElementInteractions: Not needed in this case */
 import { mdiMinidisc, mdiPauseBoxOutline, mdiPlayBoxOutline } from '@mdi/js';
 import type { ComponentChildren } from 'preact';
 import { useCallback, useState } from 'preact/hooks';

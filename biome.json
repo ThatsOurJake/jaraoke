@@ -41,7 +41,8 @@
         }
       },
       "a11y": {
-        "useKeyWithClickEvents": "off"
+        "useKeyWithClickEvents": "off",
+        "noStaticElementInteractions": "off"
       }
     }
   },

@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/a11y/noStaticElementInteractions: The div can be interacted with here */
 import classNames from 'classnames';
 import type { CombinedJaraokeFiles, JaraokeFile } from 'jaraoke-shared/types';
 import { PLACEHOLDER_ALBUM_COVER } from '../../constants';

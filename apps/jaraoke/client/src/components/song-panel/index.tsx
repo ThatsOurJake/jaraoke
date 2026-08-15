@@ -108,9 +108,14 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
             {tracks.length > 1 && (
               <TrackList tracks={tracks} onChange={onTrackVolumeChange} />
             )}
+            {tracks.length <= 1 && (
+              <p className="text-center py-2 font-inter">
+                This track has no additional options
+              </p>
+            )}
           </div>
           <div className="p-2">
-            <NormalButton onClick={onPlaySong}>
+            <NormalButton onClick={onPlaySong} fontSize="large">
               <p>Lets Sing 🎤</p>
             </NormalButton>
           </div>

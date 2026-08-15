@@ -17,24 +17,21 @@ export const MainPlayer = ({
   song,
   trackVolumes,
 }: MainPlayerProps) => {
-  const {
-    lyrics,
-    tracks,
-    metadata,
-    id: songId,
-  } = song;
+  const { lyrics, tracks, metadata, id: songId } = song;
   const loadedRef = useRef<{ audio: boolean; lyrics: boolean }>({
     audio: false,
     lyrics: false,
   });
   const audioTracks = tracks.map((x) => {
-    const volume = trackVolumes.find((y) => y.trackFileName === x.fileName)?.volume;
+    const volume = trackVolumes.find(
+      (y) => y.trackFileName === x.fileName,
+    )?.volume;
     return {
       ...x,
       volume: volume !== undefined ? volume : 1,
       isMainTrack: tracks.length === 1 || x.name === 'General',
       url: constructFileUrl(songId, x.fileName),
-    }
+    };
   });
 
   const onPause = useCallback(() => {
@@ -66,7 +63,7 @@ export const MainPlayer = ({
   }, []);
 
   return (
-    <PlayerWrapper onPause={onPause} onPlay={onPlay}>
+    <PlayerWrapper onPause={onPause} onPlay={onPlay} song={song}>
       <AudioVisualiser tracks={audioTracks} onLoaded={onAudioLoaded} />
       <LyricsVisualiser
         lyrics={lyrics}

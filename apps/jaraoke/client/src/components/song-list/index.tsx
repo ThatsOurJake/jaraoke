@@ -13,7 +13,7 @@ export const SongList = ({
   selectedSongId,
 }: SongListProps) => (
   <>
-    <div className="grid grid-cols-4 xl:grid-cols-8">
+    <div className="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
       {songs.map((song) => (
         <SongItem
           song={song}

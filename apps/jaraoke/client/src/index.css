@@ -61,3 +61,11 @@
 .font-noto-emoji {
   font-family: var(--font-noto-emoji);
 }
+
+@utility flex-2 {
+  flex: 2;
+}
+
+@utility flex-3 {
+  flex: 3;
+}

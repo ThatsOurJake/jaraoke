@@ -16,10 +16,12 @@ export const SongItem = ({
   onSongSelected,
 }: SongItemProps) => {
   const classes = classNames(
+    'absolute',
+    'inset-2',
     'bg-zinc-800',
     'border-2',
-    'h-full',
-    'w-full',
+    'flex',
+    'flex-col',
     'rounded',
     isSelected ? 'border-purple-300' : 'border-zinc-700',
   );
@@ -39,13 +41,13 @@ export const SongItem = ({
 
   return (
     <div
-      className="p-2 cursor-pointer aspect-card"
+      className="cursor-pointer aspect-card relative"
       data-id={id}
       onClick={() => onSongSelected(song)}
     >
       <div className={classes}>
         <div
-          className="h-3/5 bg-cover bg-center relative rounded-t"
+          className="flex-3 bg-cover bg-center relative rounded-t"
           style={{
             backgroundImage: `url(${imgSrc})`,
           }}
@@ -58,7 +60,7 @@ export const SongItem = ({
             </div>
           )}
         </div>
-        <div className="p-2 h-2/5 text-white space-y-0.5 border-t-2 border-zinc-700">
+        <div className="p-2 flex-2 text-white space-y-0.5 border-t-2 border-zinc-700">
           <p
             className="overflow-hidden text-ellipsis whitespace-nowrap font-bricolage font-semibold text-base xl:text-xl"
             title={title}

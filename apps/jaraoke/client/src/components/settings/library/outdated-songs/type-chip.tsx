@@ -4,6 +4,11 @@ interface TypeChipProps {
   type: OriginalSongTypes;
 }
 
+interface Mapping {
+  text: string;
+  colour: string;
+}
+
 const MAPPINGS: Record<OriginalSongTypes, { text: string; colour: string }> = {
   cdg: {
     text: 'CDG',
@@ -27,8 +32,13 @@ const MAPPINGS: Record<OriginalSongTypes, { text: string; colour: string }> = {
   },
 };
 
+const UNDEFINED_MAPPING: Mapping = {
+  colour: '#3a3a3a',
+  text: 'Unknown',
+};
+
 export const TypeChip = ({ type }: TypeChipProps) => {
-  const mapping = MAPPINGS[type];
+  const mapping = MAPPINGS[type] || UNDEFINED_MAPPING;
 
   return (
     <div

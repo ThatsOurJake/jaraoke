@@ -94,12 +94,12 @@ export const SongPanel = ({ selectedSong }: SongPanelProps) => {
                 )}
               </div>
               <div className="flex flex-col">
-                <p className="text-3xl font-bricolage font-bold drop-shadow-sm drop-shadow-purple-500">
+                <p className="text-3xl font-bricolage font-bold drop-shadow-sm drop-shadow-purple-500 line-clamp-2">
                   {metadata?.title}
                 </p>
-                <p className="text-base font-inter text-white drop-shadow-sm drop-shadow-purple-500 font-semibold">
-                  {metadata?.artist || 'Unknown'} -{' '}
-                  {metadata?.year || 'Unknown'}
+                <p className="text-base font-inter text-white drop-shadow-sm drop-shadow-purple-500 font-semibold space-x-2">
+                  <span>{metadata?.artist || 'Unknown'}</span>
+                  <span>{metadata?.year || 'Unknown'}</span>
                 </p>
               </div>
             </div>

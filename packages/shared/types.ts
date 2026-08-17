@@ -141,6 +141,8 @@ export interface JaraokeFileMeta {
   duration?: number;
 }
 
+export type OriginalSongTypes = 'video' | 'cdg' | 'kfn' | 'us' | 'lrc';
+
 interface BaseJarokeFIle {
   metadata: JaraokeFileMeta;
   version: number;
@@ -149,7 +151,7 @@ interface BaseJarokeFIle {
   coverPhoto?: string;
   parentDir?: string;
   isCompatibleWithCurrentVersion: boolean;
-  type: 'video' | 'cdg' | 'kfn' | 'us' | 'lrc';
+  type: OriginalSongTypes;
 }
 
 export type LyricDisplayType = 'top' | 'bottom' | 'translation';

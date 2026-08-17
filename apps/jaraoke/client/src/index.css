@@ -1,1 +1,71 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/Inter.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Sora";
+  src: url("/fonts/Sora.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/BricolageGrotesque.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Emoji";
+  src: url("/fonts/NotoEmoji.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@theme {
+  --color-background: rgb(20, 18, 24);
+  --color-background-secondary: #0f0d13;
+  --font-inter: "Inter";
+  --font-sora: "Sora";
+  --font-bricolage: "Bricolage Grotesque";
+  --font-noto-emoji: "Noto Emoji";
+  --aspect-card: 1 / 1.4;
+}
+
+:root {
+  font-family: var(--font-inter);
+}
+
+.font-inter {
+  font-family: var(--font-inter);
+}
+
+.font-sora {
+  font-family: var(--font-sora);
+}
+
+.font-bricolage {
+  font-family: var(--font-bricolage);
+}
+
+.font-noto-emoji {
+  font-family: var(--font-noto-emoji);
+}
+
+@utility flex-2 {
+  flex: 2;
+}
+
+@utility flex-3 {
+  flex: 3;
+}

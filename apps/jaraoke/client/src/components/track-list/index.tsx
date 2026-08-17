@@ -4,17 +4,21 @@ import { TrackItem } from './track-item';
 
 interface TrackListProps {
   tracks: JaraokeTrack[];
-  onChange: (trackName: string, checked: boolean) => void;
+  onChange: (trackName: string, volume: number) => void;
 }
 
 export const TrackList = ({ tracks, onChange }: TrackListProps) => (
   <div className="h-full max-h-full overflow-y-auto">
-    <p className="font-bold">Track Options</p>
+    <p className="font-bold font-bricolage text-xl">Track Options</p>
     <ul className="py-2 gap-y-2 flex flex-col">
       {tracks
         .filter((x) => x.isToggleable)
-        .map((t) => (
-          <TrackItem track={t} onChange={onChange} />
+        .map((t, indx) => (
+          <TrackItem
+            track={t}
+            onChange={onChange}
+            key={`${t.fileName}-${indx}`}
+          />
         ))}
     </ul>
   </div>

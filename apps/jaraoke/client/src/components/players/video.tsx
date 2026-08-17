@@ -43,6 +43,7 @@ export const VideoPlayer = ({ song, onLoadingFinished }: VideoPlayerProps) => {
       onPlay={() => {
         videoElement.current?.play();
       }}
+      song={song}
     >
       <video
         className="h-full w-full"

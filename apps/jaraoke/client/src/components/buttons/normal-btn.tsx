@@ -1,11 +1,24 @@
+import classNames from 'classnames';
 import type { ButtonProps } from './props';
 
-export const NormalButton = ({ children, onClick }: ButtonProps) => (
-  <button
-    className="bg-blue-300 p-2 w-full rounded border-2 cursor-pointer"
-    type="button"
-    onClick={onClick}
-  >
-    {children}
-  </button>
-);
+export const NormalButton = ({ children, onClick, fontSize }: ButtonProps) => {
+  const classes = classNames({
+    'bg-purple-300': true,
+    'p-2': true,
+    'w-full': true,
+    rounded: true,
+    'cursor-pointer': true,
+    'font-bricolage': true,
+    'text-black': true,
+    'font-semibold': true,
+    'text-sm': fontSize === 'small',
+    'text-base': fontSize === 'normal',
+    'text-xl': fontSize === 'large',
+  });
+
+  return (
+    <button className={classes} type="button" onClick={onClick}>
+      {children}
+    </button>
+  );
+};

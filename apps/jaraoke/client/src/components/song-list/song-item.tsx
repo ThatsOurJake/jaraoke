@@ -2,6 +2,7 @@ import classNames from 'classnames';
 import type { CombinedJaraokeFiles, JaraokeFile } from 'jaraoke-shared/types';
 import { PLACEHOLDER_ALBUM_COVER } from '../../constants';
 import { formatTime } from '../../utils/format-time';
+import { DuetSongLabel } from '../song-labels/duet';
 
 interface SongItemProps {
   isSelected?: boolean;
@@ -15,19 +16,18 @@ export const SongItem = ({
   onSongSelected,
 }: SongItemProps) => {
   const classes = classNames(
-    'p-2',
-    'rounded',
-    'cursor-pointer',
-    'flex',
-    'flex-row',
-    'drop-shadow',
-    'justify-between',
+    'absolute',
+    'inset-2',
+    'bg-zinc-800',
     'border-2',
-    isSelected ? 'bg-purple-200' : 'bg-white',
+    'flex',
+    'flex-col',
+    'rounded',
+    isSelected ? 'border-purple-300' : 'border-zinc-700',
   );
 
   const {
-    metadata: { title, artist, year, duration },
+    metadata: { title, artist, duration },
     coverPhoto,
     id,
   } = song;
@@ -40,27 +40,44 @@ export const SongItem = ({
   const isDuet = isJaraokeFile(song) && song.lyricsType === 'duet';
 
   return (
-    <li className={classes} data-id={id} onClick={() => onSongSelected(song)}>
-      <img
-        src={imgSrc}
-        alt="placeholder album"
-        className="h-12 aspect-square border-2"
-      />
-      <div className="grow px-4 min-w-0">
-        <p
-          className="overflow-hidden text-ellipsis whitespace-nowrap"
-          title={title}
+    <div
+      className="cursor-pointer aspect-card relative"
+      data-id={id}
+      onClick={() => onSongSelected(song)}
+    >
+      <div className={classes}>
+        <div
+          className="flex-3 bg-cover bg-center relative rounded-t"
+          style={{
+            backgroundImage: `url(${imgSrc})`,
+          }}
         >
-          {title}
-          {isDuet && <span className="mx-1">[Duet]</span>}
-        </p>
-        <p className="text-sm">
-          {artist || 'Unknown'} - {year || 'Unknown'}
-        </p>
+          {isDuet && (
+            <div className="absolute bottom-0 right-0">
+              <div className="p-0.5">
+                <DuetSongLabel />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="p-2 flex-2 text-white space-y-0.5 border-t-2 border-zinc-700">
+          <p
+            className="overflow-hidden text-ellipsis whitespace-nowrap font-bricolage font-semibold text-base xl:text-xl"
+            title={title}
+          >
+            {title}
+            {isDuet && <span className="mx-1">[Duet]</span>}
+          </p>
+          <p className="overflow-hidden text-ellipsis whitespace-nowrap text-sm xl:text-base font-inter">
+            {artist || 'Unknown'}
+          </p>
+          {duration && duration > 0 && (
+            <p className="text-sm xl:text-base font-inter">
+              {formatTime(duration)}
+            </p>
+          )}
+        </div>
       </div>
-      <div className="flex items-center px-3">
-        {duration && duration > 0 && <p>{formatTime(duration)}</p>}
-      </div>
-    </li>
+    </div>
   );
 };
